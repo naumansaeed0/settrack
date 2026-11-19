@@ -8,6 +8,7 @@ const paths = {
   routines: 'M5 4h14v16H5z M8 8h8 M8 12h8 M8 16h5',
   history: 'M3 12a9 9 0 1 0 3-6.7L3 8 M3 3v5h5 M12 7v5l3 2',
   progress: 'M3 3v18h18 M6 15l5-5 4 3 6-7',
+  minus: 'M5 12h14',
   plus: 'M12 5v14 M5 12h14', chevron: 'm9 6 6 6-6 6', back: 'm14 6-6 6 6 6',
   check: 'm5 12 4 4L19 6', close: 'm6 6 12 12 M18 6 6 18',
   weights: 'M2 10v4 M5 7v10 M8 9v6 M8 12h8 M16 9v6 M19 7v10 M22 10v4',
@@ -86,14 +87,14 @@ export function Chart({ points, id, metric = 'weight' }: { metric?: ProgressMetr
   const line = coords.map((point, index) => `${index ? 'L' : 'M'} ${point.x} ${point.y}`).join(' ');
   const last = coords.at(-1)!;
   return <svg className="chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${exercise(id).name}, heaviest set by session in ${metric === 'weight' ? unit : metric}`}>
-    <defs><linearGradient id={`area-${id}`} x1="0" x2="0" y1="0" y2="1" gradientUnits="objectBoundingBox"><stop stopColor="#3048e0" stopOpacity=".16" /><stop offset="1" stopColor="#3048e0" stopOpacity="0" /></linearGradient></defs>
+    <defs><linearGradient id={`area-${id}`} x1="0" x2="0" y1="0" y2="1" gradientUnits="objectBoundingBox"><stop stopColor="var(--accent)" stopOpacity=".16" /><stop offset="1" stopColor="var(--accent)" stopOpacity="0" /></linearGradient></defs>
     {Array.from({ length: 5 }, (_, index) => bottom + (top - bottom) * index / 4).map((value) => <g key={value}>
-      <line x1={left} x2={right} y1={y(value)} y2={y(value)} stroke="#e8e7e2" strokeDasharray="3 4" />
+      <line x1={left} x2={right} y1={y(value)} y2={y(value)} stroke="var(--border)" strokeDasharray="3 4" />
       <text x="31" y={y(value) + 4} textAnchor="end">{number(value)}</text>
     </g>)}
     <path d={`${line} L ${last.x} ${floor} L ${coords[0].x} ${floor} Z`} fill={`url(#area-${id})`} />
-    <path d={line} fill="none" stroke="#293fd1" strokeWidth="2.6" strokeLinejoin="round" />
-    {coords.map((point, index) => <circle key={index} cx={point.x} cy={point.y} r={index === coords.length - 1 ? 5 : 3} fill="#293fd1" stroke="white" strokeWidth="1.5"><title>{formatDate(point.date)} · {number(point.weight)} {metric === 'weight' ? unit : metric}</title></circle>)}
+    <path d={line} fill="none" stroke="var(--accent)" strokeWidth="2.6" strokeLinejoin="round" />
+    {coords.map((point, index) => <g className="chart-point" tabIndex={0} key={index} aria-label={`${formatDate(point.date)}: ${number(point.weight)} ${metric === 'weight' ? unit : metric}`}><circle cx={point.x} cy={point.y} r={index === coords.length - 1 ? 5 : 3} fill="var(--accent)" stroke="var(--surface-1)" strokeWidth="1.5"/>{index>0&&point.weight>Math.max(...coords.slice(0,index).map(p=>p.weight))&&<circle cx={point.x} cy={point.y} r="8" fill="none" stroke="var(--accent)" strokeOpacity=".4"/>}<g className="chart-tooltip" transform={`translate(${Math.min(405,Math.max(42,point.x-50))},${Math.max(0,point.y-36)})`}><rect width="110" height="26" rx="7"/><text x="55" y="17" textAnchor="middle">{number(point.weight)} {metric==='weight'?unit:metric}</text></g></g>)}
     {(coords.length > 2 ? [coords[0], coords[Math.floor(coords.length / 2)], last] : coords).filter((point, index, ticks) => index === 0 || point.x - ticks[index - 1].x > 75).map((point) =>
       <text key={point.date} x={point.x} y="151" textAnchor="middle">{formatDate(point.date)}</text>)}
   </svg>;

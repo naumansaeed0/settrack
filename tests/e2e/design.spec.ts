@@ -1,0 +1,17 @@
+import {test,expect} from '@playwright/test';
+test('manual themes persist and bundled fonts remain available offline',async({page,context})=>{
+ await page.goto('./');await page.getByRole('heading',{name:'Training log'}).waitFor();await page.getByRole('combobox',{name:'Color theme'}).selectOption('dark');await page.reload();await expect(page.locator('html')).toHaveAttribute('data-theme','dark');await page.getByRole('combobox',{name:'Color theme'}).selectOption('light');await expect(page.locator('html')).toHaveAttribute('data-theme','light');
+ await page.evaluate(async()=>{await navigator.serviceWorker.ready;await document.fonts.ready;});
+ const fonts=await page.evaluate(async()=>{const all=await Promise.all((await caches.keys()).map(async key=>(await(await caches.open(key)).keys()).map(r=>r.url)));return all.flat().filter(url=>url.endsWith('.woff2'));});expect(fonts).toHaveLength(2);await context.setOffline(true);await page.reload();await expect(page.getByRole('heading',{name:'Training log'})).toBeVisible();
+});
+test('large steppers update set values and reduced motion disables completion animation',async({page})=>{
+ await page.emulateMedia({reducedMotion:'reduce'});await page.goto('./');await page.getByRole('button',{name:'Start workout',exact:true}).click();const bench=page.getByRole('region',{name:'Bench Press',exact:true});await bench.getByRole('button',{name:'Use last weights',exact:true}).click();await page.getByRole('button',{name:'Increase Bench Press set 1 weight',exact:true}).click();await expect(page.getByRole('spinbutton',{name:'Bench Press set 1 weight in kg'})).toHaveValue('62.5');await page.getByRole('button',{name:'Decrease Bench Press set 1 reps',exact:true}).click();await expect(page.getByRole('spinbutton',{name:'Bench Press set 1 reps'})).toHaveValue('7');await page.getByRole('button',{name:'Bench Press set 1 complete',exact:true}).click();expect(await page.getByRole('button',{name:'Bench Press set 1 undo',exact:true}).locator('svg').evaluate(e=>getComputedStyle(e).animationName)).toBe('none');
+});
+test('data screen explains iOS durability and backup reminders can be dismissed',async({page})=>{
+ await page.addInitScript(()=>{Object.defineProperty(navigator,'userAgent',{value:'iPhone Safari'});Object.defineProperty(navigator.storage,'estimate',{value:async()=>({usage:1048576,quota:10485760})});localStorage.setItem('settrack:demo:firstSeen',JSON.stringify(Date.now()-15*86400000));});
+ await page.goto('./#data');await expect(page.getByText(/iOS may evict website data/)).toBeVisible();await expect(page.getByText('Storage used: 1.00 MB of 10 MB')).toBeVisible();await page.getByRole('button',{name:'Remind me later',exact:true}).click();await page.reload();await expect(page.getByRole('button',{name:'Remind me later',exact:true})).toHaveCount(0);
+});
+test('workout sharing provides a copy fallback with a readable summary',async({page})=>{
+ await page.addInitScript(()=>{Object.defineProperty(navigator,'share',{value:undefined});Object.defineProperty(navigator,'clipboard',{value:{writeText:async(text:string)=>{Object.assign(window,{copiedWorkout:text});}}});});
+ await page.goto('./#history');await page.getByRole('button',{name:/Upper Body A.*12 sets/}).first().click();await page.getByRole('button',{name:'Share this workout',exact:true}).click();await expect(page.getByText('Workout copied. Paste it into your message.')).toBeVisible();expect(await page.evaluate(()=>(window as unknown as {copiedWorkout:string}).copiedWorkout)).toMatch(/Bench Press.*60 kg x 8/);
+});
