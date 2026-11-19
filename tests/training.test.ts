@@ -126,3 +126,8 @@ test('pounds round trips and the canonical weight boundary are consistent', asyn
   assert.equal(validSet({id:'x',weight:storedWeight('2204.63','lb'),reps:'1',done:true}),false);
   const now=+new Date(2026,10,19,0,1);assert.equal(localDayStart(now,6),+new Date(2026,10,13,0,0));
 });
+
+test('rolling day filters include local midnight across a DST boundary',async()=>{
+ const {filterWorkouts}=await import('../src/training.ts');const original=process.env.TZ;process.env.TZ='America/New_York';
+ try{const now=+new Date(2026,10,5,0,1);const source=demoJournal(now).history[0];const first={...source,id:'included',startedAt:+new Date(2026,9,30,0,0)-1000,finishedAt:+new Date(2026,9,30,0,0)};const older={...source,id:'excluded',startedAt:+new Date(2026,9,29,23,59)-1000,finishedAt:+new Date(2026,9,29,23,59)};assert.deepEqual(filterWorkouts([older,first],'','',7,now).map(w=>w.id),['included']);}finally{if(original===undefined)delete process.env.TZ;else process.env.TZ=original;}
+});

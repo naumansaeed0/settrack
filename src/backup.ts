@@ -10,7 +10,8 @@ const unique = (v: unknown[], key: string) => new Set(v.map(x => object(x) ? x[k
 const exerciseId = (v: unknown) => library.some(x => x.id === v);
 function set(v: unknown): boolean {
   return object(v) && text(v.id) && typeof v.weight === 'string' && typeof v.reps === 'string' && typeof v.done === 'boolean'
-    && (v.seconds === undefined || typeof v.seconds === 'string');
+    && (v.seconds === undefined || typeof v.seconds === 'string')
+    && (v.enteredWeight === undefined || object(v.enteredWeight) && ['kg','lb'].includes(String(v.enteredWeight.unit)) && typeof v.enteredWeight.value === 'string');
 }
 function lifts(v: unknown, completed = false): boolean {
   return list(v, x => object(x) && exerciseId(x.exerciseId) && (x.type === undefined || ['weight','bodyweight','timed'].includes(String(x.type))) && list(x.sets, set) && (x.sets as Journal['history'][number]['lifts'][number]['sets']).every(s => !completed || !s.done || validSet(s, exerciseType(x as Journal['history'][number]['lifts'][number]))) && unique(x.sets as unknown[], 'id')) && unique(v as unknown[], 'exerciseId');

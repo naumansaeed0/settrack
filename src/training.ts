@@ -179,7 +179,7 @@ export const incompleteSets = (draft: Draft) => draft.lifts.flatMap(lift => lift
 export function localDayStart(now: number, daysAgo = 0) { const date = new Date(now); date.setDate(date.getDate() - daysAgo); date.setHours(0,0,0,0); return +date; }
 export function migrateJournal(journal: Journal): Journal {
   const next = structuredClone(journal);
-  next.routines.forEach(r => r.targets.forEach(t => { t.type ??= 'weight'; }));
-  [...next.history, ...(next.draft ? [next.draft] : [])].forEach(w => w.lifts.forEach(l => { l.type ??= 'weight'; }));
+  next.routines.forEach(r => r.targets.forEach(t => { t.type ??= exerciseType(t); }));
+  [...next.history, ...(next.draft ? [next.draft] : [])].forEach(w => w.lifts.forEach(l => { l.type ??= exerciseType(l); }));
   return next;
 }
