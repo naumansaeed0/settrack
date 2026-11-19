@@ -11,7 +11,7 @@ test('migrates a version 1 snapshot without losing workouts, routines or draft',
   assert.deepEqual(importBackup(exportBackup(journal)), migrateJournal(journal));
 });
 test('rejects malformed JSON, unknown versions, invalid exercises and invalid completed sets', () => {
-  assert.throws(() => importBackup('{'), /valid JSON/);
+  assert.throws(() => importBackup('{'), /valid SetTrack backup/);
   assert.throws(() => migrateBackup({ app: 'settrack', version: 99 }), /version/);
   const journal = demoJournal();
   journal.history[0].lifts[0].sets[0].reps = '-2';

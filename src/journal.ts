@@ -23,7 +23,7 @@ export async function loadJournal(workspace: Workspace): Promise<Snapshot | unde
   const db = await openJournal();
   return new Promise((resolve,reject) => { const request = db.transaction('workspaces').objectStore('workspaces').get(workspace); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
 }
-export async function saveJournal(workspace: Workspace, journal: Journal, revision: number, safety?: Journal) {
+export async function saveJournal(workspace: Workspace, journal: Journal, revision: number, safety?: Journal | null) {
   const db = await openJournal();
   return new Promise<number>((resolve,reject) => {
     const transaction = db.transaction(['workspaces','safety'], 'readwrite');
@@ -31,7 +31,8 @@ export async function saveJournal(workspace: Workspace, journal: Journal, revisi
     current.onsuccess = () => {
       if ((current.result?.revision ?? 0) !== revision) { conflict = true; transaction.abort(); return; }
       try {
-        if (safety) transaction.objectStore('safety').put(safety, workspace);
+        if (safety === null) transaction.objectStore('safety').delete(workspace);
+        else if (safety) transaction.objectStore('safety').put(safety, workspace);
         store.put({ revision: revision + 1, journal }, workspace);
       } catch (error) { writeError = error; transaction.abort(); }
     };

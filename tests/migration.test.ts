@@ -18,6 +18,7 @@ test('DB v1 upgrades in place and import safety snapshots are transactional', as
   await saveJournal('personal',{routines:[],history:[],draft:null},7,saved.journal);
   assert.deepEqual(await loadSafety('personal'),saved.journal);
   await assert.rejects(saveJournal('personal',journal,7),/workspace-conflict/);
+  await saveJournal('personal',saved.journal,8,null);assert.equal(await loadSafety('personal'),undefined);
 });
 test('zero-weight progress and records use reps and timed sets use seconds',()=>{
   const draft=startWorkout();draft.lifts=[{exerciseId:'push-up',type:'bodyweight',sets:[{id:'a',weight:'0',reps:'10',done:true}]}];
