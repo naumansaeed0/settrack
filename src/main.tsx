@@ -67,7 +67,9 @@ function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwi
     loadJournal(workspace).then((saved) => {
       if (active) {
         version.current = saved?.revision ?? 0;
-        setJournal(saved?.journal ?? (workspace === 'demo' ? demoJournal() : emptyJournal()));
+        const next = saved?.journal ?? (workspace === 'demo' ? demoJournal() : emptyJournal());
+        setJournal(next);
+        if (!next.draft && routePage() === 'workout') { setPage('dashboard'); location.hash = 'dashboard'; }
       }
     }).catch(() => { if (active) setStorageError('IndexedDB is unavailable. Private browsing, blocked site storage or a full device may prevent saving. Allow site storage, free space and reload.'); });
     return () => { active = false; };
@@ -78,7 +80,7 @@ function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwi
   }, [page]);
 
   useEffect(() => {
-    const sync = () => setPage(routePage());
+    const sync = () => { if (location.hash !== '#content') setPage(routePage()); };
     window.addEventListener('hashchange', sync);
     return () => window.removeEventListener('hashchange', sync);
   }, []);
@@ -175,9 +177,9 @@ function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwi
           try { if (file.size > 20 * 1024 * 1024) throw new Error('Backup is too large (maximum 20 MB).'); setImported(importBackup(await file.text())); }
           catch (error) { setBackupError(error instanceof Error ? error.message : 'Could not read backup file.'); }
         }} /></label></div><span>Strength training journal</span></footer>
+      {persistence && <p className="storage-note">{persistence}</p>}
+      {backupError && <p className="error" role="alert">{backupError}</p>}
     </div>
-    {persistence && <p className="storage-note">{persistence}</p>}
-    {backupError && <p className="error" role="alert">{backupError}</p>}
     {imported && <Modal title="Replace this journal?" onClose={() => setImported(null)}><p>This will replace all routines, past workouts and the active draft in {workspace === 'demo' ? 'Demo journal' : 'My journal'} with the backup. Export your current journal first to keep a copy.</p><div className="modal-actions"><button className="button secondary" onClick={() => setImported(null)}>Cancel import</button><button className="button danger" disabled={status === 'saving'} onClick={() => { save(imported); setImported(null); setDetail(null); navigate('dashboard'); }}>Replace journal</button></div></Modal>}
     {editing && journal && <RoutineEditor initial={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} onSave={(routine) => {
       save({ ...journal, routines: editing === 'new' ? [...journal.routines, routine] : journal.routines.map((item) => item.id === routine.id ? routine : item) });
