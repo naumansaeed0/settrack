@@ -1,12 +1,13 @@
 import { createRoot } from 'react-dom/client';
 import { useEffect, useRef, useState } from 'react';
+import { WorkoutHistory } from './history.tsx';
 import { PwaUpdate } from './pwa.tsx';
 import { UnitProvider, useUnits } from './units.tsx';
 import { useRestAlert } from './useRestAlert.ts';
 import { useWakeLock } from './useWakeLock.ts';
 import { exportBackup, importBackup } from './backup.ts';
 import { loadJournal, saveJournal } from './journal.ts';
-import { demoJournal, emptyJournal, exercise, finishWorkout, library, progressFor, startWorkout, workoutStats,
+import { demoJournal, emptyJournal, exercise, finishWorkout, library, progressFor, repeatWorkout, startWorkout, workoutStats,
   type ExerciseId, type Journal, type Routine, type Workout, type Workspace } from './training.ts';
 import { Chart, duration, Empty, formatDate, Icon, Modal, number, PageHeading, WorkoutRows } from './ui.tsx';
 import { RoutineEditor, WorkoutDetail, WorkoutEditor } from './workout.tsx';
@@ -166,8 +167,7 @@ function JournalApp({ workspace, openSwitcher, usePersonal }: { workspace: Works
           {journal && page === 'routines' && <><PageHeading title="Routines" subtitle="Build a workout you can return to." action={newRoutine} />
             {journal.routines.length ? <div className="routine-cards">{journal.routines.map((routine) => <article className="panel routine-card" key={routine.id}><span className="row-icon"><Icon name="weights" /></span><h2>{routine.name}</h2><p>{routine.targets.length} exercises · {routine.targets.reduce((sum, item) => sum + item.sets, 0)} target sets</p><ul>{routine.targets.map((target) => <li key={target.exerciseId}>{exercise(target.exerciseId).name}<span>{target.sets} × {target.reps}</span></li>)}</ul><div className="routine-actions"><button className="button primary" onClick={() => start(routine)}>{journal.draft ? 'Resume workout' : 'Start workout'}</button><button className="button secondary" onClick={() => setEditing(routine)} aria-label={`Edit ${routine.name}`}>Edit</button></div></article>)}</div>
               : <section className="panel"><Empty title="No routines yet">Create a routine with the exercises you train most often.</Empty></section>}</>}
-          {journal && page === 'history' && <><PageHeading title="Workout history" subtitle={`${journal.history.length} completed ${journal.history.length === 1 ? 'workout' : 'workouts'}`} />
-            <section className="panel">{journal.history.length ? <WorkoutRows workouts={journal.history} open={setDetail} /> : <Empty title="The log is empty">Finish your first workout to see it here.</Empty>}</section></>}
+          {journal && page === 'history' && <WorkoutHistory history={journal.history} open={setDetail} />}
           {journal && page === 'progress' && <><PageHeading title="Lift progress" subtitle="Follow your heaviest completed set from session to session." />
             <section className="panel progress-panel"><div className="section-heading"><h2>{exercise(selected).name}</h2><label className="field"><span className="sr-only">Exercise</span><select value={selected} onChange={(event) => setSelected(event.target.value as ExerciseId)}>{library.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label></div>
               {points.length > 0 && <div className="progress-metrics"><div><small>Heaviest set</small><strong>{number(weight(Math.max(...points.map((point) => point.weight))))} <small>{unit}</small></strong></div><div><small>Sessions</small><strong>{points.length}</strong></div></div>}
@@ -198,7 +198,7 @@ function JournalApp({ workspace, openSwitcher, usePersonal }: { workspace: Works
       save({ ...journal, routines: editing === 'new' ? [...journal.routines, routine] : journal.routines.map((item) => item.id === routine.id ? routine : item) });
       setEditing(null);
     }} />}
-    {detail && journal && <WorkoutDetail key={detail.id} onSave={(updated) => { save({ ...journal, history: journal.history.map(w => w.id === updated.id ? updated : w).sort((a,b) => b.finishedAt - a.finishedAt) }); setDetail(updated); }} onDelete={() => { save({ ...journal, history: journal.history.filter(w => w.id !== detail.id) }); setDetail(null); }} workout={detail} journal={journal} onClose={() => setDetail(null)} onProgress={(id) => { setSelected(id); setDetail(null); navigate('progress'); }} />}
+    {detail && journal && <WorkoutDetail key={detail.id} onRepeat={() => { if (journal.draft) return; save({ ...journal, draft: repeatWorkout(detail) }); setDetail(null); navigate('workout'); }} onSave={(updated) => { save({ ...journal, history: journal.history.map(w => w.id === updated.id ? updated : w).sort((a,b) => b.finishedAt - a.finishedAt) }); setDetail(updated); }} onDelete={() => { save({ ...journal, history: journal.history.filter(w => w.id !== detail.id) }); setDetail(null); }} workout={detail} journal={journal} onClose={() => setDetail(null)} onProgress={(id) => { setSelected(id); setDetail(null); navigate('progress'); }} />}
   </div>;
 }
 

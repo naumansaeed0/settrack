@@ -54,3 +54,30 @@ test('unit conversions preserve canonical kilograms and empty entry fields', asy
   assert.equal(storedWeight('', 'lb'), '');
   assert.equal(storedWeight('62.5', 'kg'), '62.5');
 });
+
+test('repeating a workout creates independent unchecked sets and a fresh rest clock', async () => {
+  const { repeatWorkout } = await import('../src/training.ts');
+  const original = demoJournal().history[0];
+  const before = structuredClone(original);
+  const draft = repeatWorkout(original, 1234);
+  assert.equal(draft.startedAt, 1234);
+  assert.equal(draft.restUntil, null);
+  assert.notEqual(draft.id, original.id);
+  assert.equal(finishWorkout(draft), null);
+  assert.notEqual(draft.lifts[0].sets[0].id, original.lifts[0].sets[0].id);
+  assert.equal(draft.lifts[0].sets[0].weight, original.lifts[0].sets[0].weight);
+  draft.lifts[0].sets[0].weight = '99';
+  assert.deepEqual(original, before);
+});
+
+test('history search combines name, exercise and date filters without mutating history', async () => {
+  const { filterWorkouts } = await import('../src/training.ts');
+  const now = Date.parse('2026-11-19T20:00:00Z');
+  const { history } = demoJournal(now);
+  const before = structuredClone(history);
+  assert.equal(filterWorkouts(history, '  upper BENCH ', 'bench', 7, now).length, 2);
+  assert.equal(filterWorkouts(history, '', 'squat', 7, now).length, 1);
+  assert.equal(filterWorkouts(history, 'no match').length, 0);
+  assert.equal(filterWorkouts(history, 'upper', 'squat').length, 0);
+  assert.deepEqual(history, before);
+});

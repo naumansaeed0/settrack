@@ -126,3 +126,22 @@ export type Unit = 'kg' | 'lb';
 const factor = 2.2046226218;
 export const displayWeight = (kg: number, unit: Unit) => Math.round(kg * (unit === 'lb' ? factor : 1) * 100) / 100;
 export const storedWeight = (value: string, unit: Unit) => value.trim() === '' ? '' : String(Math.round(Number(value) / (unit === 'lb' ? factor : 1) * 1e6) / 1e6);
+
+export function repeatWorkout(workout: Workout, startedAt = Date.now()): Draft {
+  return {
+    id: crypto.randomUUID(), name: workout.name, startedAt, restUntil: null,
+    lifts: workout.lifts.map(lift => ({ exerciseId: lift.exerciseId, sets: lift.sets.map(set => ({
+      id: crypto.randomUUID(), weight: set.weight, reps: set.reps, done: false,
+    })) })),
+  };
+}
+
+export function filterWorkouts(history: Workout[], query = '', exerciseId: ExerciseId | '' = '', days = 0, now = Date.now()) {
+  const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  return history.filter(workout => {
+    const text = `${workout.name} ${workout.lifts.map(lift => exercise(lift.exerciseId).name).join(' ')}`.toLowerCase();
+    return terms.every(term => text.includes(term))
+      && (!exerciseId || workout.lifts.some(lift => lift.exerciseId === exerciseId))
+      && (!days || workout.finishedAt >= now - days * 86400000 && workout.finishedAt <= now);
+  }).sort((a, b) => b.finishedAt - a.finishedAt);
+}

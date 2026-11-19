@@ -282,3 +282,12 @@ button, .icon-button { min-width: 44px; }
 @media (prefers-color-scheme: dark) {
   .demo-notice { background: #242e45; border-color: #3c4966; }
 }
+.history-filters { display: grid; grid-template-columns: minmax(180px, 2fr) minmax(150px, 1fr) minmax(140px, 1fr); gap: 12px; margin-bottom: 18px; }
+.filter-summary { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: .85rem; color: var(--muted); margin: -6px 0 10px; }
+.repeat-session { padding: 16px 0; border-top: 1px solid var(--line); margin-top: 16px; }
+.repeat-session p { margin-top: 8px; font-size: .8rem; }
+@media (max-width: 700px) {
+  .history-filters { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .history-filters .search-field { grid-column: 1/-1; }
+  .modal-actions { flex-wrap: wrap; }
+}

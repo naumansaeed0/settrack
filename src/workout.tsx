@@ -108,7 +108,7 @@ export function RoutineEditor({ initial, onSave, onClose }: { initial?: Routine;
   </Modal>;
 }
 
-export function WorkoutDetail({ workout, journal, onClose, onProgress, onSave, onDelete }: { workout: Workout; journal: Journal; onClose: () => void; onProgress: (id: ExerciseId) => void; onSave: (workout: Workout) => void; onDelete: () => void }) {
+export function WorkoutDetail({ workout, journal, onClose, onProgress, onSave, onDelete, onRepeat }: { workout: Workout; journal: Journal; onClose: () => void; onProgress: (id: ExerciseId) => void; onSave: (workout: Workout) => void; onDelete: () => void; onRepeat: () => void }) {
   const { unit, weight, inputWeight, fromInput } = useUnits();
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -130,6 +130,7 @@ export function WorkoutDetail({ workout, journal, onClose, onProgress, onSave, o
     <div className="summary-stats"><div><strong>{stats.sets}</strong><small>Sets</small></div><div><strong>{number(weight(stats.volume))} {unit}</strong><small>Volume</small></div><div><strong>{duration(workout.startedAt, workout.finishedAt)}</strong><small>Duration</small></div></div>
     {records.map((record) => <div className="record" key={record.exerciseId}><Icon name="trophy" /><div><strong>New heaviest set</strong><p>{exercise(record.exerciseId).name} · {number(weight(record.weight))} {unit}</p></div><button className="text-button" onClick={() => onProgress(record.exerciseId)}>View progress</button></div>)}
     <div className="summary-lifts">{workout.lifts.map((lift) => <div key={lift.exerciseId}><strong>{exercise(lift.exerciseId).name}</strong><span>{lift.sets.map((set) => `${weight(set.weight)} ${unit} × ${set.reps}`).join(' · ')}</span></div>)}</div>
+    <div className="repeat-session"><button className="button primary" disabled={!!journal.draft} onClick={onRepeat}><Icon name="weights" size={18} /> Repeat workout</button><p>{journal.draft ? 'Finish or discard your active workout before repeating this session.' : 'Start a new session with these weights and reps. All sets begin unchecked.'}</p></div>
     <div className="modal-actions"><button className="button secondary" onClick={() => setEditing(true)}>Edit workout</button><button className="button danger" onClick={() => setConfirmDelete(true)}>Delete workout</button><button className="button primary" onClick={onClose}>Done</button></div>
     </>}
   </Modal>;
