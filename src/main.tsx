@@ -8,6 +8,10 @@ import { RoutineEditor, WorkoutDetail, WorkoutEditor } from './workout.tsx';
 import './styles.css';
 
 type Page = 'dashboard' | 'routines' | 'history' | 'progress' | 'workout';
+function routePage(): Page {
+  const value = location.hash.slice(1);
+  return ['dashboard', 'routines', 'history', 'progress', 'workout'].includes(value) ? value as Page : 'dashboard';
+}
 const navigation = [{ id: 'dashboard', label: 'Overview' }, { id: 'routines', label: 'Routines' }, { id: 'history', label: 'History' }, { id: 'progress', label: 'Progress' }] as const;
 
 function initialWorkspace(): Workspace {
@@ -34,7 +38,7 @@ function App() {
 
 function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwitcher: () => void }) {
   const [journal, setJournal] = useState<Journal | null>(null);
-  const [page, setPage] = useState<Page>('dashboard');
+  const [page, setPage] = useState<Page>(() => routePage());
   const [selected, setSelected] = useState<ExerciseId>('bench');
   const [editing, setEditing] = useState<Routine | 'new' | null>(null);
   const [detail, setDetail] = useState<Workout | null>(null);
@@ -61,10 +65,17 @@ function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwi
     if (focusAfterNavigation.current) main.current?.focus();
   }, [page]);
 
+  useEffect(() => {
+    const sync = () => setPage(routePage());
+    window.addEventListener('hashchange', sync);
+    return () => window.removeEventListener('hashchange', sync);
+  }, []);
+
   function navigate(next: Page) {
     if (next === page) return;
     focusAfterNavigation.current = true;
     setPage(next);
+    location.hash = next;
     window.scrollTo(0, 0);
   }
 
@@ -186,5 +197,5 @@ function Metric({ icon, label, value, unit, note }: { icon: 'calendar' | 'volume
 
 createRoot(document.getElementById('root')!).render(<App />);
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-  void navigator.serviceWorker.register(new URL('./sw.js', document.baseURI)).catch(() => undefined);
+  void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => undefined);
 }

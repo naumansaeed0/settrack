@@ -40,7 +40,7 @@ test('a personal routine saves independently of the demo workspace', async ({ pa
   await page.getByRole('button', { name: 'Routines', exact: true }).click();
   await page.getByRole('button', { name: 'New routine', exact: true }).click();
   await page.getByLabel('Routine name').fill('Leg Day');
-  await page.getByLabel('Exercise', { exact: true }).selectOption('squat');
+  await page.getByRole('combobox', { name: 'Exercise', exact: true }).selectOption('squat');
   await page.getByRole('button', { name: 'Add', exact: true }).click();
   await page.getByRole('button', { name: 'Save routine' }).click();
   await expect(page.getByRole('status')).toHaveText('Stored on this device');
@@ -49,4 +49,16 @@ test('a personal routine saves independently of the demo workspace', async ({ pa
   await page.getByRole('button', { name: /my journal/i }).click();
   await page.getByRole('button', { name: /demo journal/i }).click();
   await expect(page.getByRole('heading', { name: 'Upper Body A' })).toBeVisible();
+});
+
+
+test('history deep link survives online and offline reloads', async ({ page, context }) => {
+  await page.goto('./#history');
+  await expect(page.getByRole('heading', { name: 'Workout history' })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Workout history' })).toBeVisible();
+  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Workout history' })).toBeVisible();
 });

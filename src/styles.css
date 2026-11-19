@@ -203,7 +203,7 @@ dialog p { line-height: 1.5; color: var(--muted); }
   .metrics { gap: 6px; margin-block: 10px; } .metric { padding: 9px 7px; } .metric > div { font-size: .75rem; } .metric > div svg { display: none; } .metric > span { font-size: .68rem; } .metric > strong { font-size: 1.13rem; } .metric > strong small { font-size: .72rem; }
   .dashboard-chart { padding-inline: 11px; } .chart text { font-size: 15px; }
   .session-grid { display: block; padding-bottom: 100px; }
-  .timer-panel { z-index: 2; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 6px; position: fixed; inset: auto 0 0; padding: 7px 10px max(7px, env(safe-area-inset-bottom)); border-radius: 0; box-shadow: 0 -3px 15px #1724491b; }
+  .timer-panel { z-index: 2; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 6px; position: fixed; inset: auto 0 0; top: auto; padding: 7px 10px max(7px, env(safe-area-inset-bottom)); border-radius: 0; box-shadow: 0 -3px 15px #1724491b; }
   .timer-label { font-size: .67rem; } .timer-label svg { width: 13px; height: 13px; } .timer-number { font-size: 1.65rem; margin: 2px 0; }
   .timer-actions { justify-self: start; gap: 4px; } .timer-actions .button { padding: 0 6px; min-height: 35px; font-size: .72rem; }
   .session-actions { margin-top: 0; gap: 1px; } .session-actions .button { min-height: 34px; font-size: .76rem; } .session-actions .text-button { min-height: 26px; font-size: .69rem; }

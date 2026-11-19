@@ -1,6 +1,6 @@
 # SetTrack
 
-[Open the live demo](https://naumansaeed0.github.io/settrack/) · [Build and browser tests](https://github.com/naumansaeed0/settrack/actions/workflows/pages.yml)
+[Open the live demo](https://naumansaeed0.github.io/settrack/)
 
 SetTrack is a strength-training journal that puts your previous sets beside today’s entries. It saves active workouts in the browser, so you can close the tab and pick up where you left off.
 
@@ -42,6 +42,6 @@ npm run test:e2e
 
 React and TypeScript handle the interface. The training rules live separately from the views in `src/training.ts`. IndexedDB saves each workspace as one versioned snapshot. Finishing a workout clears its draft and adds its completed sets in the same transaction. A revision check prevents a stale tab from overwriting a newer save.
 
-The rest timer stores a deadline so elapsed time stays accurate through reloads and backgrounding. The progress chart uses the heaviest completed set per session. A record is a strict increase over an earlier mark. Vite builds the static app and generates its offline asset list. GitHub Actions runs the tests and publishes the build to GitHub Pages.
+The rest timer stores a deadline so elapsed time stays accurate through reloads and backgrounding. The progress chart uses the heaviest completed set per session. A record is a strict increase over an earlier mark. Vite builds the static app and generates its offline asset list. Deploy with `npm run deploy`, which builds locally and publishes only `dist/` (including `.nojekyll`) to `gh-pages`. Pages must serve **gh-pages / (root)**. No GitHub Actions workflow is used. Deep links use hashes, for example `/settrack/#history`.
 
 Training data lives in the current browser profile. Clearing site data removes the saved journal.
