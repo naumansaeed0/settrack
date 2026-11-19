@@ -3,6 +3,7 @@ import { useUnits } from './units.tsx';
 import { exercise, workoutStats, type ProgressMetric, type ExerciseId, type Workout } from './training.ts';
 
 const paths = {
+  data: 'M4 5h16v14H4z M4 9h16 M8 13h8',
   dashboard: 'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z',
   routines: 'M5 4h14v16H5z M8 8h8 M8 12h8 M8 16h5',
   history: 'M3 12a9 9 0 1 0 3-6.7L3 8 M3 3v5h5 M12 7v5l3 2',

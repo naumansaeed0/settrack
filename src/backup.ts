@@ -12,12 +12,12 @@ function set(v: unknown): boolean {
   return object(v) && text(v.id) && typeof v.weight === 'string' && typeof v.reps === 'string' && typeof v.done === 'boolean'
     && (v.seconds === undefined || typeof v.seconds === 'string');
 }
-function lifts(v: unknown): boolean {
-  return list(v, x => object(x) && exerciseId(x.exerciseId) && (x.type === undefined || ['weight','bodyweight','timed'].includes(String(x.type))) && list(x.sets, set) && (x.sets as Journal['history'][number]['lifts'][number]['sets']).every(s => !s.done || validSet(s, exerciseType(x as Journal['history'][number]['lifts'][number]))) && unique(x.sets as unknown[], 'id')) && unique(v as unknown[], 'exerciseId');
+function lifts(v: unknown, completed = false): boolean {
+  return list(v, x => object(x) && exerciseId(x.exerciseId) && (x.type === undefined || ['weight','bodyweight','timed'].includes(String(x.type))) && list(x.sets, set) && (x.sets as Journal['history'][number]['lifts'][number]['sets']).every(s => !completed || !s.done || validSet(s, exerciseType(x as Journal['history'][number]['lifts'][number]))) && unique(x.sets as unknown[], 'id')) && unique(v as unknown[], 'exerciseId');
 }
 export function validateJournal(v: unknown): v is Journal {
   if (!object(v)) return false;
-  const workout = (x: unknown, draft = false) => object(x) && text(x.id) && text(x.name) && time(x.startedAt) && lifts(x.lifts)
+  const workout = (x: unknown, draft = false) => object(x) && text(x.id) && text(x.name) && time(x.startedAt) && lifts(x.lifts, !draft)
     && (draft ? x.restUntil === null || time(x.restUntil) : time(x.finishedAt) && x.finishedAt >= x.startedAt
       && (x.lifts as Journal['history'][number]['lifts']).every(l => l.sets.every(s => s.done)));
   return list(v.routines, x => object(x) && text(x.id) && text(x.name) && list(x.targets, t => object(t) && exerciseId(t.exerciseId)

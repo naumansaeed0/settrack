@@ -331,3 +331,13 @@ button, .icon-button { min-width: 44px; }
   .record { background: #253c2d; color: #c9efd4; }
   .record p { color: #c9efd4; }
 }
+.data-toolbar { margin-top: 28px; border-top: 1px solid var(--line); padding-top: 20px; }
+.data-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; margin-bottom: 20px; }
+.data-grid article { padding: 20px; }
+.data-grid p { line-height: 1.65; margin-top: 10px; color: var(--muted); }
+.data-screen .backup-actions { margin: 18px 0; }
+.backup-nudge { padding: 16px; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 16px; }
+.share-session { margin-top: 16px; }
+.share-session textarea { display:block; width:100%; min-height:140px; margin-top:10px; }
+.tracking-type { max-width:220px; margin-bottom:12px; }
+@media(max-width:700px){ .data-grid{grid-template-columns:1fr} .sidebar nav{gap:0}.sidebar nav button{font-size:.62rem;padding-inline:0} }

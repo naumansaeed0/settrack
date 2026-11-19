@@ -5,20 +5,20 @@ import { PwaUpdate } from './pwa.tsx';
 import { UnitProvider, useUnits } from './units.tsx';
 import { useRestAlert } from './useRestAlert.ts';
 import { useWakeLock } from './useWakeLock.ts';
-import { exportBackup, importBackup } from './backup.ts';
-import { moveDraftToPersonal, loadSafety, storageMessage, loadJournal, saveJournal } from './journal.ts';
-import { demoJournal, emptyJournal, exercise, finishWorkout, library, progressMetric, progressFor, repeatWorkout, startWorkout, workoutStats,
+import { DataControls } from './data.tsx';
+import { useJournal } from './useJournal.ts';
+import { demoJournal, exercise, finishWorkout, library, progressMetric, progressFor, repeatWorkout, startWorkout, workoutStats,
   type ExerciseId, type Journal, type Routine, type Workout, type Workspace } from './training.ts';
 import { Chart, duration, Empty, formatDate, Icon, Modal, number, PageHeading, WorkoutRows } from './ui.tsx';
 import { RoutineEditor, WorkoutDetail, WorkoutEditor } from './workout.tsx';
 import './styles.css';
 
-type Page = 'dashboard' | 'routines' | 'history' | 'progress' | 'workout';
+type Page = 'dashboard' | 'routines' | 'history' | 'progress' | 'workout' | 'data';
 function routePage(): Page {
   const value = location.hash.slice(1);
-  return ['dashboard', 'routines', 'history', 'progress', 'workout'].includes(value) ? value as Page : 'dashboard';
+  return ['dashboard', 'routines', 'history', 'progress', 'workout', 'data'].includes(value) ? value as Page : 'dashboard';
 }
-const navigation = [{ id: 'dashboard', label: 'Overview' }, { id: 'routines', label: 'Routines' }, { id: 'history', label: 'History' }, { id: 'progress', label: 'Progress' }] as const;
+const navigation = [{ id: 'dashboard', label: 'Overview' }, { id: 'routines', label: 'Routines' }, { id: 'history', label: 'History' }, { id: 'progress', label: 'Progress' }, { id: 'data', label: 'Your data' }] as const;
 
 function initialWorkspace(): Workspace {
   const requested = new URLSearchParams(location.search).get('workspace');
@@ -55,23 +55,15 @@ function App() {
 
 function JournalApp({ workspace, openSwitcher, usePersonal }: { workspace: Workspace; openSwitcher: () => void; usePersonal: () => void }) {
   const { unit, setUnit, weight, preferenceError } = useUnits();
-  const [journal, setJournal] = useState<Journal | null>(null);
+  const {journal,status,storageError,save,replace,undo,undoImport,move} = useJournal(workspace);
   const [page, setPage] = useState<Page>(() => routePage());
   const [selected, setSelected] = useState<ExerciseId>('bench');
   const [editing, setEditing] = useState<Routine | 'new' | null>(null);
   const [detail, setDetail] = useState<Workout | null>(null);
-  const [status, setStatus] = useState<'ready' | 'saving' | 'error'>('ready');
-  const [storageError, setStorageError] = useState('');
   const [persistence, setPersistence] = useState('');
   const [backupError, setBackupError] = useState('');
-  const [undoImport, setUndoImport] = useState(false);
-  const [imported, setImported] = useState<Journal | null>(null);
-  const pending = useRef(Promise.resolve());
-  const lastSave = useRef(0);
-  const version = useRef(0);
   const focusAfterNavigation = useRef(false);
   const main = useRef<HTMLElement>(null);
-  const backupInput = useRef<HTMLInputElement>(null);
   const [online, setOnline] = useState(navigator.onLine);
   useEffect(() => {
     const sync = () => setOnline(navigator.onLine);
@@ -84,17 +76,11 @@ function JournalApp({ workspace, openSwitcher, usePersonal }: { workspace: Works
     if (navigator.storage?.persist) {
       void navigator.storage.persist().then(granted => { if (active) setPersistence(granted ? 'Persistent storage enabled.' : 'Your browser may clear this journal under storage pressure. Export backups regularly.'); }).catch(() => { if (active) setPersistence('Persistent storage is unavailable. Export backups regularly.'); });
     } else setPersistence('Persistent storage is unavailable. Export backups regularly.');
-    loadJournal(workspace).then((saved) => {
-      if (active) {
-        version.current = saved?.revision ?? 0;
-        const next = saved?.journal ?? (workspace === 'demo' ? demoJournal() : emptyJournal());
-        setJournal(next);
-        setSelected(next.history[0]?.lifts[0]?.exerciseId ?? next.routines[0]?.targets[0]?.exerciseId ?? 'bench');
-        if (!next.draft && routePage() === 'workout') { setPage('dashboard'); location.hash = 'dashboard'; }
-      }
-    }).catch((error) => { if (active) setStorageError(storageMessage(error)); });
     return () => { active = false; };
   }, [workspace]);
+
+  const initialized = useRef(false);
+  useEffect(() => { if (journal && !initialized.current) { initialized.current = true; setSelected(journal.history[0]?.lifts[0]?.exerciseId ?? journal.routines[0]?.targets[0]?.exerciseId ?? 'bench'); if (!journal.draft && routePage() === 'workout') { setPage('dashboard'); location.hash = 'dashboard'; } } }, [journal]);
 
   useEffect(() => {
     if (focusAfterNavigation.current) main.current?.focus();
@@ -114,29 +100,8 @@ function JournalApp({ workspace, openSwitcher, usePersonal }: { workspace: Works
     window.scrollTo(0, 0);
   }
 
-  function save(next: Journal) {
-    if (storageError) return;
-    setJournal(next);
-    setStatus('saving');
-    const ticket = ++lastSave.current;
-    const write = pending.current.then(async () => { version.current = await saveJournal(workspace, next, version.current); });
-    pending.current = write;
-    write.then(() => { if (ticket === lastSave.current) setStatus('ready'); }, (error: unknown) => {
-      if (ticket === lastSave.current) {
-        setStatus('error');
-        setStorageError(storageMessage(error));
-      }
-    });
-  }
-
-  async function replaceJournal(next: Journal, keepSafety = true) {
-    if (!journal || storageError) return;
-    setStatus('saving');
-    try {
-      await pending.current;
-      version.current = await saveJournal(workspace, next, version.current, keepSafety ? journal : undefined);
-      setJournal(next); setImported(null); setDetail(null); setUndoImport(keepSafety); setStatus('ready'); navigate('dashboard');
-    } catch (error) { setStatus('error'); setStorageError(storageMessage(error)); }
+  async function replaceJournal(next: Journal) {
+    const restored = await replace(next); if (restored) setDetail(null); return restored;
   }
 
   function start(routine?: Routine) {
@@ -191,27 +156,13 @@ function JournalApp({ workspace, openSwitcher, usePersonal }: { workspace: Works
               <Chart metric={metric} points={points} id={selected} />
               {points.length > 0 && <details><summary>Session data</summary><table className="data-table"><thead><tr><th scope="col">Date</th><th scope="col">Heaviest set</th></tr></thead><tbody>{[...points].reverse().map((point, index) => <tr key={`${point.date}-${index}`}><td>{formatDate(point.date, { day: 'numeric', month: 'short', year: 'numeric' })}</td><td>{number(metric === 'weight' ? weight(point.weight) : point.weight)} {metric === 'weight' ? unit : metric}</td></tr>)}</tbody></table></details>}
             </section></>}
-          {journal?.draft && page === 'workout' && <WorkoutEditor switchToPersonal={async () => { try { await pending.current; await moveDraftToPersonal(version.current); usePersonal(); } catch (error) { setBackupError(error instanceof Error ? error.message : 'The draft could not be moved. It remains in Demo.'); } }} workspace={workspace} draft={journal.draft} history={journal.history} change={(draft) => save({ ...journal, draft })} finish={finish} discard={() => { save({ ...journal, draft: null }); navigate('dashboard'); }} />}
+          {journal?.draft && page === 'workout' && <WorkoutEditor switchToPersonal={async () => { try { await move(); usePersonal(); } catch (error) { setBackupError(error instanceof Error ? error.message : 'The draft could not be moved. It remains in Demo.'); } }} workspace={workspace} draft={journal.draft} history={journal.history} change={(draft) => save({ ...journal, draft })} finish={finish} discard={() => { save({ ...journal, draft: null }); navigate('dashboard'); }} />}
         </div>
+        <DataControls key={workspace} journal={journal} workspace={workspace} busy={status === 'saving'} error={storageError} persistence={persistence} expanded={page === 'data'} replace={replaceJournal} undo={undo} canUndo={undoImport} />
       </main>
-      <footer><span>SetTrack</span><div className="backup-actions">
-        <button className="text-button" disabled={!journal || status === 'saving'} onClick={() => {
-          if (!journal) return;
-          const url = URL.createObjectURL(new Blob([exportBackup(journal)], { type: 'application/json' }));
-          const link = document.createElement('a'); link.href = url; link.download = `settrack-${workspace}-${new Date().toISOString().slice(0, 10)}.json`; link.click();
-          setTimeout(() => URL.revokeObjectURL(url), 1000);
-        }}>Export journal</button>
-        <button className="button secondary" disabled={!journal || !!storageError || status === 'saving'} onClick={() => backupInput.current?.click()}>Import journal</button><input ref={backupInput} hidden aria-label="Import journal" type="file" accept=".json,application/json" disabled={!journal || !!storageError || status === 'saving'} onChange={async (event) => {
-          const file = event.target.files?.[0]; event.target.value = ''; if (!file) return;
-          setBackupError('');
-          try { if (file.size > 20 * 1024 * 1024) throw new Error('Backup is too large (maximum 20 MB).'); setImported(importBackup(await file.text())); }
-          catch (error) { setBackupError(error instanceof Error ? error.message : 'Could not read backup file.'); }
-        }} /></div><span>Strength training journal</span></footer>
-      {persistence && <p className="storage-note">{persistence}</p>}
-      {undoImport && <div className="rest-notice"><p>Backup restored. Your previous journal is kept as a safety snapshot.</p><button className="button secondary" onClick={async () => { const previous = await loadSafety(workspace); if (previous) await replaceJournal(previous, false); }}>Undo import</button></div>}
+      <footer><span>SetTrack</span><span>Strength training journal</span></footer>
       {backupError && <p className="error" role="alert">{backupError}</p>}
     </div>
-    {imported && <Modal title="Replace this journal?" onClose={() => setImported(null)}><p>This will replace all routines, past workouts and the active draft in {workspace === 'demo' ? 'Demo journal' : 'My journal'} with the backup. Export your current journal first to keep a copy.</p><div className="modal-actions"><button className="button secondary" onClick={() => setImported(null)}>Cancel import</button><button className="button danger" disabled={status === 'saving'} onClick={() => { void replaceJournal(imported); }}>Replace journal</button></div></Modal>}
     {editing && journal && <RoutineEditor initial={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} onSave={(routine) => {
       save({ ...journal, routines: editing === 'new' ? [...journal.routines, routine] : journal.routines.map((item) => item.id === routine.id ? routine : item) });
       setEditing(null);

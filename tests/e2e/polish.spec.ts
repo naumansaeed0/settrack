@@ -9,7 +9,7 @@ const backupFile = (content: string) => ({ name: 'journal.json', mimeType: 'appl
 test('backup import validates data, confirms overwrite and exports the whole journal', async ({ page }) => {
   await page.goto('./');
   await expect(page.getByRole('heading', { name: 'Training log' })).toBeVisible();
-  const input = page.getByLabel('Import journal', { exact: true });
+  const input = page.getByLabel('Restore from backup', { exact: true });
   await input.setInputFiles(backupFile('{bad'));
   await expect(page.getByRole('alert')).toContainText('not valid JSON');
   await expect(page.getByRole('heading', { name: 'Upper Body A' })).toBeVisible();
@@ -17,7 +17,7 @@ test('backup import validates data, confirms overwrite and exports the whole jou
   await page.getByRole('button', { name: 'Cancel import' }).click();
   await expect(page.getByRole('heading', { name: 'Upper Body A' })).toBeVisible();
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export journal' }).click();
+  await page.getByRole('button', { name: 'Back up my journal' }).click();
   const download = await downloadPromise;
   const exported = JSON.parse(await readFile((await download.path())!, 'utf8'));
   expect(exported.version).toBe(3);
@@ -92,7 +92,7 @@ test('quota errors preserve the unsaved journal for export', async ({ page }) =>
   await page.getByRole('button', { name: 'Start workout', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('quota exceeded');
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export journal' }).click();
+  await page.getByRole('button', { name: 'Back up my journal' }).click();
   const exported = JSON.parse(await readFile((await (await downloadPromise).path())!, 'utf8'));
   expect(exported.journal.draft.name).toBe('Upper Body A');
 });
