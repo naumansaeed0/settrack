@@ -73,7 +73,7 @@ test('workspace units persist and pounds entries keep canonical kilograms', asyn
   await expect(bench.getByRole('spinbutton', { name: 'Bench Press set 1 weight in kg' })).toHaveValue('50');
   await page.getByRole('combobox', { name: 'Weight units' }).selectOption('lb');
   await page.getByRole('button', { name: /Demo journal/ }).click();
-  await page.getByRole('button', { name: /My journal/ }).click();
+  await page.getByRole('button', { name: /^My journal/ }).click();
   await expect(page.getByRole('combobox', { name: 'Weight units' })).toHaveValue('kg');
   await expect(page.getByRole('heading', { name: 'Your first workout' })).toBeVisible();
 });

@@ -35,7 +35,7 @@ test('the guided flow works offline after a reload and updates lift progress', a
 test('a personal routine saves independently of the demo workspace', async ({ page }) => {
   await page.goto('./');
   await page.getByRole('button', { name: /demo journal/i }).click();
-  await page.getByRole('button', { name: /my journal/i }).click();
+  await page.getByRole('button', { name: /^my journal/i }).click();
   await expect(page.getByRole('heading', { name: 'Your first workout' })).toBeVisible();
   await page.getByRole('button', { name: 'Routines', exact: true }).click();
   await page.getByRole('button', { name: 'New routine', exact: true }).click();
@@ -46,7 +46,7 @@ test('a personal routine saves independently of the demo workspace', async ({ pa
   await expect(page.getByRole('status')).toHaveText('Stored on this device');
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Leg Day' })).toBeVisible();
-  await page.getByRole('button', { name: /my journal/i }).click();
+  await page.getByRole('button', { name: /^my journal/i }).click();
   await page.getByRole('button', { name: /demo journal/i }).click();
   await expect(page.getByRole('heading', { name: 'Upper Body A' })).toBeVisible();
 });

@@ -20,28 +20,33 @@ function routePage(): Page {
 const navigation = [{ id: 'dashboard', label: 'Overview' }, { id: 'routines', label: 'Routines' }, { id: 'history', label: 'History' }, { id: 'progress', label: 'Progress' }] as const;
 
 function initialWorkspace(): Workspace {
-  return new URLSearchParams(location.search).get('workspace') === 'personal' ? 'personal' : 'demo';
+  const requested = new URLSearchParams(location.search).get('workspace');
+  if (requested) return requested === 'personal' ? 'personal' : 'demo';
+  try { return localStorage.getItem('settrack:workspace') === 'personal' ? 'personal' : 'demo'; } catch { return 'demo'; }
 }
 
 function App() {
   const [workspace, setWorkspace] = useState(initialWorkspace);
   const [switcher, setSwitcher] = useState(false);
+  function switchWorkspace(option: Workspace) {
+    const url = new URL(location.href);
+    url.searchParams.set('workspace', option);
+    url.hash = 'dashboard';
+    window.history.replaceState(null, '', url);
+    try { localStorage.setItem('settrack:workspace', option); } catch { /* The URL still preserves the workspace on reload. */ }
+    setWorkspace(option);
+    setSwitcher(false);
+  }
   return <>
-    <UnitProvider key={workspace} workspace={workspace}><JournalApp workspace={workspace} openSwitcher={() => setSwitcher(true)} /></UnitProvider>
+    <UnitProvider key={workspace} workspace={workspace}><JournalApp workspace={workspace} openSwitcher={() => setSwitcher(true)} usePersonal={() => switchWorkspace('personal')} /></UnitProvider>
     {switcher && <Modal title="Switch workspace" onClose={() => setSwitcher(false)}>
       <p>Each workspace keeps its own routines and workout history on this device.</p>
-      <div className="picker">{(['demo', 'personal'] as const).map((option) => <button className="picker-row" key={option} onClick={() => {
-        const url = new URL(location.href);
-        if (option === 'demo') url.searchParams.delete('workspace'); else url.searchParams.set('workspace', option);
-        window.history.replaceState(null, '', url);
-        setWorkspace(option);
-        setSwitcher(false);
-      }}><span><strong>{option === 'demo' ? 'Demo journal' : 'My journal'}</strong><small>{option === 'demo' ? 'Sample routines and lifting history' : 'Your own routines and workouts'}</small></span><Icon name={workspace === option ? 'check' : 'chevron'} size={18} /></button>)}</div>
+      <div className="picker">{(['demo', 'personal'] as const).map((option) => <button className="picker-row" key={option} onClick={() => switchWorkspace(option)}><span><strong>{option === 'demo' ? 'Demo journal' : 'My journal'}</strong><small>{option === 'demo' ? 'Sample routines and lifting history' : 'Your own routines and workouts'}</small></span><Icon name={workspace === option ? 'check' : 'chevron'} size={18} /></button>)}</div>
     </Modal>}
   </>;
 }
 
-function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwitcher: () => void }) {
+function JournalApp({ workspace, openSwitcher, usePersonal }: { workspace: Workspace; openSwitcher: () => void; usePersonal: () => void }) {
   const { unit, setUnit, weight, preferenceError } = useUnits();
   const [journal, setJournal] = useState<Journal | null>(null);
   const [page, setPage] = useState<Page>(() => routePage());
@@ -58,6 +63,13 @@ function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwi
   const version = useRef(0);
   const focusAfterNavigation = useRef(false);
   const main = useRef<HTMLElement>(null);
+  const backupInput = useRef<HTMLInputElement>(null);
+  const [online, setOnline] = useState(navigator.onLine);
+  useEffect(() => {
+    const sync = () => setOnline(navigator.onLine);
+    window.addEventListener('online', sync); window.addEventListener('offline', sync);
+    return () => { window.removeEventListener('online', sync); window.removeEventListener('offline', sync); };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -140,8 +152,9 @@ function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwi
       <button className="workspace" onClick={openSwitcher} disabled={status === 'saving'}><span className="workspace-icon"><Icon name="workspace" size={18} /></span><span><strong>{workspace === 'demo' ? 'Demo journal' : 'My journal'}</strong><small>Switch workspace</small></span><Icon name="chevron" size={15} /></button>
     </aside>
     <div className="body">
-      <header className="topbar"><label className="unit-switch">Units <select aria-label="Weight units" value={unit} onChange={e => setUnit(e.target.value as 'kg' | 'lb')}><option value="kg">kg</option><option value="lb">lb</option></select></label><span>{page === 'workout' ? 'Active workout' : navigation.find((item) => item.id === page)?.label}</span><div role="status" className="storage-status"><i data-status={status} />{status === 'saving' ? 'Saving…' : status === 'error' ? 'Save failed' : journal ? 'Stored on this device' : 'Opening journal…'}</div></header>
+      <header className="topbar"><label className="unit-switch">Units <select aria-label="Weight units" value={unit} onChange={e => setUnit(e.target.value as 'kg' | 'lb')}><option value="kg">kg</option><option value="lb">lb</option></select></label><span className="current-view">{page === 'workout' ? 'Active workout' : navigation.find((item) => item.id === page)?.label}</span><div role="status" className="storage-status"><i data-status={status} />{status === 'saving' ? 'Saving…' : status === 'error' ? 'Save failed' : journal ? 'Stored on this device' : 'Opening journal…'}</div></header>
       <main id="content" ref={main} tabIndex={-1}>
+        {!online && <p className="offline-note" aria-live="polite"><Icon name="check" size={16} /> You’re offline. Your journal still saves on this device.</p>}
         <PwaUpdate safeToReload={status === 'ready' && !storageError} />
         {preferenceError && <p role="alert">{preferenceError}</p>}
         {restMessage && <p className="rest-notice" role="alert">{restMessage}</p>}
@@ -149,7 +162,7 @@ function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwi
         {storageError && <p className="error" role="alert">{storageError} <button className="text-button" onClick={() => location.reload()}>Reload</button></p>}
         {!journal && !storageError && <p>Opening your journal…</p>}
         <div inert={!!storageError}>
-          {journal && page === 'dashboard' && <Overview journal={journal} start={start} open={setDetail} navigate={navigate} newRoutine={() => setEditing('new')} />}
+          {journal && page === 'dashboard' && <Overview workspace={workspace} usePersonal={usePersonal} canSwitch={status !== 'saving'} addTemplate={(routine) => { save({ ...journal, routines: [...journal.routines, { ...routine, id: crypto.randomUUID(), targets: routine.targets.map(target => ({ ...target })) }] }); navigate('routines'); }} journal={journal} start={start} open={setDetail} navigate={navigate} newRoutine={() => setEditing('new')} />}
           {journal && page === 'routines' && <><PageHeading title="Routines" subtitle="Build a workout you can return to." action={newRoutine} />
             {journal.routines.length ? <div className="routine-cards">{journal.routines.map((routine) => <article className="panel routine-card" key={routine.id}><span className="row-icon"><Icon name="weights" /></span><h2>{routine.name}</h2><p>{routine.targets.length} exercises · {routine.targets.reduce((sum, item) => sum + item.sets, 0)} target sets</p><ul>{routine.targets.map((target) => <li key={target.exerciseId}>{exercise(target.exerciseId).name}<span>{target.sets} × {target.reps}</span></li>)}</ul><div className="routine-actions"><button className="button primary" onClick={() => start(routine)}>{journal.draft ? 'Resume workout' : 'Start workout'}</button><button className="button secondary" onClick={() => setEditing(routine)} aria-label={`Edit ${routine.name}`}>Edit</button></div></article>)}</div>
               : <section className="panel"><Empty title="No routines yet">Create a routine with the exercises you train most often.</Empty></section>}</>}
@@ -171,12 +184,12 @@ function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwi
           const link = document.createElement('a'); link.href = url; link.download = `settrack-${workspace}-${new Date().toISOString().slice(0, 10)}.json`; link.click();
           setTimeout(() => URL.revokeObjectURL(url), 1000);
         }}>Export journal</button>
-        <label className="button secondary">Import journal<input aria-label="Import journal" type="file" accept=".json,application/json" disabled={!journal || !!storageError || status === 'saving'} onChange={async (event) => {
+        <button className="button secondary" disabled={!journal || !!storageError || status === 'saving'} onClick={() => backupInput.current?.click()}>Import journal</button><input ref={backupInput} hidden aria-label="Import journal" type="file" accept=".json,application/json" disabled={!journal || !!storageError || status === 'saving'} onChange={async (event) => {
           const file = event.target.files?.[0]; event.target.value = ''; if (!file) return;
           setBackupError('');
           try { if (file.size > 20 * 1024 * 1024) throw new Error('Backup is too large (maximum 20 MB).'); setImported(importBackup(await file.text())); }
           catch (error) { setBackupError(error instanceof Error ? error.message : 'Could not read backup file.'); }
-        }} /></label></div><span>Strength training journal</span></footer>
+        }} /></div><span>Strength training journal</span></footer>
       {persistence && <p className="storage-note">{persistence}</p>}
       {backupError && <p className="error" role="alert">{backupError}</p>}
     </div>
@@ -189,7 +202,8 @@ function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwi
   </div>;
 }
 
-function Overview({ journal, start, open, navigate, newRoutine }: {
+function Overview({ journal, start, open, navigate, newRoutine, workspace, usePersonal, canSwitch, addTemplate }: {
+  workspace: Workspace; usePersonal: () => void; canSwitch: boolean; addTemplate: (routine: Routine) => void;
   journal: Journal; start: (routine?: Routine) => void; open: (workout: Workout) => void; navigate: (page: Page) => void; newRoutine: () => void;
 }) {
   const { unit, weight } = useUnits();
@@ -202,6 +216,7 @@ function Overview({ journal, start, open, navigate, newRoutine }: {
   const current = points.at(-1)?.weight;
   return <>
     <PageHeading title="Training log" subtitle={formatDate(Date.now(), { weekday: 'long', month: 'long', day: 'numeric' })} action={<button className="button secondary blank" onClick={() => start()}><Icon name="plus" size={18} /> {journal.draft ? 'Resume workout' : 'Blank workout'}</button>} />
+    {workspace === 'demo' && <section className="demo-notice" aria-label="About the demo journal"><div><span className="eyebrow">EXPLORE SETTRACK</span><strong>A sample journal. A place to try things.</strong><p>These workouts are examples. Your own training has a separate space on this device.</p></div><button className="button secondary" disabled={!canSwitch} onClick={usePersonal}>Use my journal <Icon name="chevron" size={16} /></button></section>}
     <section className="hero" aria-label="Start training"><div className="hero-content">
       <span className="eyebrow"><i />{journal.draft ? 'WORKOUT IN PROGRESS' : featured ? 'QUICK START' : 'START TRAINING'}</span>
       <h2>{journal.draft?.name ?? featured?.name ?? 'Your first workout'}</h2>
@@ -223,6 +238,7 @@ function Overview({ journal, start, open, navigate, newRoutine }: {
         {journal.history.length ? <WorkoutRows workouts={journal.history.slice(0, 4)} open={open} /> : <Empty title="No workouts logged">Your finished workouts will appear here.</Empty>}
       </section>
     </div>
+    {workspace === 'personal' && !journal.routines.length && !journal.history.length && <section className="starter-section" aria-label="Starter routines"><div className="section-heading"><div><h2>Make your first session easier</h2><p>Start with an editable routine. No sample workouts will be added.</p></div></div><div className="starter-grid">{demoJournal().routines.map(routine => <article className="panel starter-card" key={routine.id}><span className="row-icon"><Icon name="weights" /></span><h3>{routine.name}</h3><p>{routine.targets.map(target => exercise(target.exerciseId).name).join(' · ')}</p><button className="button secondary" onClick={() => addTemplate(routine)}>Use {routine.name}</button></article>)}</div></section>}
     {!journal.routines.length && <button className="button secondary" onClick={newRoutine}><Icon name="plus" size={18} /> Create a routine</button>}
   </>;
 }
