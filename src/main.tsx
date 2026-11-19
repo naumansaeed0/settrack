@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { useEffect, useRef, useState } from 'react';
+import { PwaUpdate } from './pwa.tsx';
 import { UnitProvider, useUnits } from './units.tsx';
 import { useRestAlert } from './useRestAlert.ts';
 import { useWakeLock } from './useWakeLock.ts';
@@ -139,6 +140,7 @@ function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwi
     <div className="body">
       <header className="topbar"><label className="unit-switch">Units <select aria-label="Weight units" value={unit} onChange={e => setUnit(e.target.value as 'kg' | 'lb')}><option value="kg">kg</option><option value="lb">lb</option></select></label><span>{page === 'workout' ? 'Active workout' : navigation.find((item) => item.id === page)?.label}</span><div role="status" className="storage-status"><i data-status={status} />{status === 'saving' ? 'Saving…' : status === 'error' ? 'Save failed' : journal ? 'Stored on this device' : 'Opening journal…'}</div></header>
       <main id="content" ref={main} tabIndex={-1}>
+        <PwaUpdate safeToReload={status === 'ready' && !storageError} />
         {preferenceError && <p role="alert">{preferenceError}</p>}
         {restMessage && <p className="rest-notice" role="alert">{restMessage}</p>}
         {wakeMessage && <p className="storage-note">{wakeMessage}</p>}
@@ -228,6 +230,3 @@ function Metric({ icon, label, value, unit, note }: { icon: 'calendar' | 'volume
 }
 
 createRoot(document.getElementById('root')!).render(<App />);
-if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-  void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => undefined);
-}

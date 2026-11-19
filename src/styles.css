@@ -236,3 +236,17 @@ button, .icon-button { min-width: 44px; }
   .set-row input, .set-row .icon-button { min-height: 44px; }
   footer { flex-wrap: wrap; gap: 12px; }
 }
+.unit-switch { display: inline-flex; align-items: center; gap: 6px; }
+.unit-switch select { max-width: 70px; }
+@media (prefers-color-scheme: dark) {
+  :root { color-scheme: dark; color: #ebedf1; background: #171b20; --ink: #ebedf1; --muted: #b5bbc4; --paper: #232930; --line: #454d57; --blue: #aebaff; --blue-pale: #29334e; --green: #99d7b0; }
+  .sidebar, .topbar { background: #1d2229; }
+  .workspace, dialog, input, select { background: #232930; color: var(--ink); }
+  .sidebar nav button { color: var(--muted); }
+  .button.primary { background: #4056de; color: white; }
+  .button.secondary { background: var(--paper); border-color: var(--line); }
+  .row-icon, .workspace-icon { background: #2d3651; }
+  .set-grid, .set-labels, .previous, .history-row, .picker-row, .field, .timer-label { color: var(--ink); }
+  .history-row, .picker-row { background: transparent; }
+  .chart text { fill: #b5bbc4; }
+}
