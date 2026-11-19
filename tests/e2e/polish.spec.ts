@@ -11,7 +11,7 @@ test('backup import validates data, confirms overwrite and exports the whole jou
   await expect(page.getByRole('heading', { name: 'Training log' })).toBeVisible();
   const input = page.getByLabel('Restore from backup', { exact: true });
   await input.setInputFiles(backupFile('{bad'));
-  await expect(page.getByRole('alert')).toContainText('not valid JSON');
+  await expect(page.getByRole('alert')).toContainText('not a valid SetTrack backup');
   await expect(page.getByRole('heading', { name: 'Upper Body A' })).toBeVisible();
   await input.setInputFiles(backupFile(emptyBackup));
   await page.getByRole('button', { name: 'Cancel import' }).click();
@@ -148,7 +148,7 @@ test('manifest icons dark theme and all interactive workout controls meet phone 
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto('./');
   await page.getByRole('button', { name: 'Start workout', exact: true }).click();
-  expect(await page.locator('html').evaluate(e => getComputedStyle(e).backgroundColor)).toBe('rgb(23, 27, 32)');
+  expect(await page.locator('html').evaluate(e => getComputedStyle(e).backgroundColor)).toBe('rgb(8, 15, 25)');
   const undersized = await page.locator('button, input, select').evaluateAll(elements => elements.filter(e => {
     const rect = e.getBoundingClientRect();
     return rect.width > 0 && rect.height > 0 && (rect.width < 44 || rect.height < 44);
