@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useUnits } from './units.tsx';
-import { exercise, library, makeSet, previousSets, secondsLeft, validSet, workoutStats, recordsFor,
+import { appendSet, usePreviousWeights, exercise, library, makeSet, previousSets, secondsLeft, validSet, workoutStats, recordsFor,
   type Workspace, type Draft, type ExerciseId, type Journal, type Routine, type SetEntry, type Workout } from './training.ts';
 import { duration, Empty, formatDate, Icon, Modal, number, PageHeading } from './ui.tsx';
 
@@ -10,6 +10,9 @@ export function WorkoutEditor({ draft, history, change, finish, discard, workspa
   const { unit, weight, inputWeight, fromInput } = useUnits();
   const [restSeconds, setRestSeconds] = useState(() => { try { return localStorage.getItem(`settrack:${workspace}:restSeconds`) || '90'; } catch { return '90'; } });
   const durationSeconds = Math.min(3600, Math.max(5, Number(restSeconds) || 90));
+  const [removing, setRemoving] = useState<{ id: ExerciseId; kind: 'set' | 'exercise' } | null>(null);
+  const [renaming, setRenaming] = useState(false);
+  const [name, setName] = useState(draft.name);
   const [adding, setAdding] = useState(false);
   const [confirm, setConfirm] = useState<'finish' | 'discard' | null>(null);
   const [now, setNow] = useState(Date.now);
@@ -30,7 +33,8 @@ export function WorkoutEditor({ draft, history, change, finish, discard, workspa
   }
 
   return <>
-    <PageHeading title={draft.name} subtitle={`${count} of ${total} sets completed · ${duration(draft.startedAt, now)} elapsed`} />
+    <PageHeading title={draft.name} subtitle={`${count} of ${total} sets completed · ${duration(draft.startedAt, now)} elapsed`} action={<button className="button secondary" onClick={() => { setName(draft.name); setRenaming(true); }}>Rename workout</button>} />
+    <div className="workout-completion" role="progressbar" aria-label="Workout completion" aria-valuemin={0} aria-valuemax={Math.max(1, total)} aria-valuenow={count}><span style={{ width: `${total ? count / total * 100 : 0}%` }} /></div>
     <div className="session-grid">
       <div className="lift-list">
         {!draft.lifts.length && <section className="panel"><Empty title="What are you lifting today?">Add an exercise to log your first set.</Empty></section>}
@@ -40,6 +44,7 @@ export function WorkoutEditor({ draft, history, change, finish, discard, workspa
           const latest = previous.at(-1);
           return <section className="panel lift" key={lift.exerciseId} aria-label={info.name}>
             <header className="lift-heading"><span className="row-icon"><Icon name="weights" /></span><div><h2>{info.name}</h2><p>{info.group}{latest && ` · Last session ${weight(latest.weight)} ${unit} × ${latest.reps}`}</p></div></header>
+            {previous.length > 0 && <div className="previous-tools"><button className="text-button" disabled={!lift.sets.some((set, index) => !set.done && set.weight.trim() === '' && previous[index] && validSet(previous[index]))} onClick={() => change({ ...draft, lifts: draft.lifts.map(item => item === lift ? usePreviousWeights(lift, previous) : item) })}>Use last weights</button><span>Fills empty weights. Keeps your edits.</span></div>}
             <div className="set-grid set-labels" aria-hidden="true"><span>Set</span><span>Previous</span><span>{unit}</span><span>Reps</span><span>Done</span></div>
             {lift.sets.map((set, index) => <div className={`set-grid set-row ${set.done ? 'done' : ''}`} key={set.id}>
               <span>{index + 1}</span><span className="previous">{previous[index] ? `${weight(previous[index].weight)} × ${previous[index].reps}` : '—'}</span>
@@ -47,7 +52,7 @@ export function WorkoutEditor({ draft, history, change, finish, discard, workspa
               <input inputMode="numeric" type="number" min="1" max="200" step="1" placeholder={previous[index]?.reps ?? '–'} aria-label={`${info.name} set ${index + 1} reps`} value={set.reps} onChange={(event) => updateSet(lift.exerciseId, set.id, { reps: event.target.value, done: false })} />
               <button type="button" className="icon-button set-check" aria-label={`${info.name} set ${index + 1} ${set.done ? 'undo' : 'complete'}`} aria-pressed={set.done} disabled={!validSet(set)} onClick={() => updateSet(lift.exerciseId, set.id, { done: !set.done }, !set.done)}><Icon name="check" size={18} /></button>
             </div>)}
-            <button className="text-button add-set" onClick={() => change({ ...draft, lifts: draft.lifts.map((item) => item === lift ? { ...lift, sets: [...lift.sets, makeSet(lift.sets.at(-1)?.reps)] } : item) })}><Icon name="plus" size={16} /> Add set</button>
+            <div className="lift-actions"><button className="text-button add-set" onClick={() => change({ ...draft, lifts: draft.lifts.map(item => item === lift ? appendSet(lift) : item) })}><Icon name="plus" size={16} /> Add set</button><button className="text-button" disabled={!lift.sets.length} onClick={() => setRemoving({ id: lift.exerciseId, kind: 'set' })}>Remove last set</button><button className="text-button muted-action" onClick={() => setRemoving({ id: lift.exerciseId, kind: 'exercise' })}>Remove exercise</button></div>
           </section>;
         })}
         <button className="button secondary add-exercise" onClick={() => setAdding(true)}><Icon name="plus" size={18} /> Add exercise</button>
@@ -59,6 +64,8 @@ export function WorkoutEditor({ draft, history, change, finish, discard, workspa
         <div className="session-actions"><button className="button primary" disabled={!count} onClick={() => count === total ? finish() : setConfirm('finish')}>Finish workout</button><button className="text-button discard" onClick={() => setConfirm('discard')}>Discard draft</button></div>
       </aside>
     </div>
+    {renaming && <Modal title="Rename workout" onClose={() => setRenaming(false)}><form onSubmit={event => { event.preventDefault(); if (!name.trim()) return; change({ ...draft, name: name.trim() }); setRenaming(false); }}><label className="field">Workout name<input autoFocus required maxLength={60} value={name} onChange={e => setName(e.target.value)} /></label><div className="modal-actions"><button type="button" className="button secondary" onClick={() => setRenaming(false)}>Cancel</button><button className="button primary" disabled={!name.trim()}>Save name</button></div></form></Modal>}
+    {removing && <Modal title={removing.kind === 'exercise' ? `Remove ${exercise(removing.id).name}?` : 'Remove last set?'} onClose={() => setRemoving(null)}><p>{removing.kind === 'exercise' ? 'This exercise and its sets will be removed from the active draft.' : 'The last set in this exercise will be removed from the active draft.'}</p><div className="modal-actions"><button className="button secondary" onClick={() => setRemoving(null)}>Keep logging</button><button className="button danger" onClick={() => { change({ ...draft, lifts: removing.kind === 'exercise' ? draft.lifts.filter(lift => lift.exerciseId !== removing.id) : draft.lifts.map(lift => lift.exerciseId === removing.id ? { ...lift, sets: lift.sets.slice(0, -1) } : lift) }); setRemoving(null); }}>Confirm removal</button></div></Modal>}
     {adding && <ExercisePicker used={draft.lifts.map((lift) => lift.exerciseId)} onClose={() => setAdding(false)} onSelect={(id) => {
       change({ ...draft, lifts: [...draft.lifts, { exerciseId: id, sets: [makeSet()] }] }); setAdding(false);
     }} />}

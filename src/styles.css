@@ -291,3 +291,10 @@ button, .icon-button { min-width: 44px; }
   .history-filters .search-field { grid-column: 1/-1; }
   .modal-actions { flex-wrap: wrap; }
 }
+.workout-completion { height: 5px; background: var(--line); border-radius: 4px; overflow: hidden; margin: -5px 0 22px; }
+.workout-completion span { display: block; height: 100%; background: var(--green); transition: width .2s; }
+.previous-tools { display: flex; align-items: center; flex-wrap: wrap; column-gap: 12px; margin: -8px 0 8px; }
+.previous-tools > span { color: var(--muted); font-size: .75rem; }
+.lift-actions { display: flex; flex-wrap: wrap; gap: 4px 12px; padding-top: 6px; align-items: center; }
+.lift-actions .add-set { margin: 0; }
+.muted-action { color: var(--muted); }

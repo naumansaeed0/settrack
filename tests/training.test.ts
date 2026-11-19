@@ -81,3 +81,30 @@ test('history search combines name, exercise and date filters without mutating h
   assert.equal(filterWorkouts(history, 'upper', 'squat').length, 0);
   assert.deepEqual(history, before);
 });
+
+test('filling previous weights keeps completed sets and user edits unchanged', async () => {
+  const { usePreviousWeights } = await import('../src/training.ts');
+  const previous = demoJournal().history[0].lifts[0].sets;
+  const draft = startWorkout(demoJournal().routines[0]);
+  const lift = draft.lifts[0];
+  Object.assign(lift.sets[0], { weight: '62.5', done: true });
+  Object.assign(lift.sets[1], { weight: '55', reps: '12' });
+  const result = usePreviousWeights(lift, previous);
+  assert.equal(result.sets[0].done, true);
+  assert.equal(result.sets[0].weight, '62.5');
+  assert.equal(result.sets[1].weight, '55');
+  assert.equal(result.sets[1].reps, '12');
+  assert.equal(result.sets[2].weight, '60');
+  assert.equal(result.sets[2].done, false);
+  assert.equal(lift.sets[2].weight, '');
+});
+
+test('adding a set reuses valid entries but never copies completion or set identity', async () => {
+  const { appendSet } = await import('../src/training.ts');
+  const lift = demoJournal().history[0].lifts[0];
+  const next = appendSet(lift);
+  assert.equal(lift.sets.length, 3);
+  assert.equal(next.sets.length, 4);
+  assert.deepEqual({ weight: next.sets[3].weight, reps: next.sets[3].reps, done: next.sets[3].done }, { weight: '60', reps: '8', done: false });
+  assert.notEqual(next.sets[3].id, lift.sets[2].id);
+});

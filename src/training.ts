@@ -145,3 +145,16 @@ export function filterWorkouts(history: Workout[], query = '', exerciseId: Exerc
       && (!days || workout.finishedAt >= now - days * 86400000 && workout.finishedAt <= now);
   }).sort((a, b) => b.finishedAt - a.finishedAt);
 }
+
+export function usePreviousWeights(lift: Lift, previous: SetEntry[]): Lift {
+  return { ...lift, sets: lift.sets.map((set, index) => {
+    const last = previous[index];
+    if (set.done || set.weight.trim() !== '' || !last || !validSet(last)) return set;
+    return { ...set, weight: last.weight, reps: set.reps.trim() === '' ? last.reps : set.reps };
+  }) };
+}
+
+export function appendSet(lift: Lift): Lift {
+  const last = [...lift.sets].reverse().find(validSet);
+  return { ...lift, sets: [...lift.sets, { ...makeSet(last?.reps ?? lift.sets.at(-1)?.reps), weight: last?.weight ?? '' }] };
+}
