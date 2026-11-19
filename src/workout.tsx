@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { exercise, library, makeSet, previousSets, secondsLeft, validSet, workoutStats, recordsFor,
-  type Draft, type ExerciseId, type Journal, type Routine, type SetEntry, type Workout } from './training.ts';
+  type Workspace, type Draft, type ExerciseId, type Journal, type Routine, type SetEntry, type Workout } from './training.ts';
 import { duration, Empty, formatDate, Icon, Modal, number, PageHeading } from './ui.tsx';
 
-export function WorkoutEditor({ draft, history, change, finish, discard }: {
-  draft: Draft; history: Workout[]; change: (draft: Draft) => void; finish: () => void; discard: () => void;
+export function WorkoutEditor({ draft, history, change, finish, discard, workspace }: {
+  workspace: Workspace; draft: Draft; history: Workout[]; change: (draft: Draft) => void; finish: () => void; discard: () => void;
 }) {
+  const [restSeconds, setRestSeconds] = useState(() => { try { return localStorage.getItem(`settrack:${workspace}:restSeconds`) || '90'; } catch { return '90'; } });
+  const durationSeconds = Math.min(3600, Math.max(5, Number(restSeconds) || 90));
   const [adding, setAdding] = useState(false);
   const [confirm, setConfirm] = useState<'finish' | 'discard' | null>(null);
   const [now, setNow] = useState(Date.now);
@@ -19,7 +21,7 @@ export function WorkoutEditor({ draft, history, change, finish, discard }: {
   const timer = `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')}`;
 
   function updateSet(liftId: ExerciseId, id: string, patch: Partial<SetEntry>, startRest = false) {
-    change({ ...draft, restUntil: startRest ? Date.now() + 90000 : draft.restUntil, lifts: draft.lifts.map((lift) =>
+    change({ ...draft, restUntil: startRest ? Date.now() + durationSeconds * 1000 : draft.restUntil, lifts: draft.lifts.map((lift) =>
       lift.exerciseId === liftId ? { ...lift, sets: lift.sets.map((set) => set.id === id ? { ...set, ...patch } : set) } : lift) });
   }
 
@@ -48,7 +50,8 @@ export function WorkoutEditor({ draft, history, change, finish, discard }: {
       </div>
       <aside className="panel timer-panel" aria-label="Rest timer and workout actions">
         <div className="timer-content"><div className="timer-label"><Icon name="timer" /><span>Rest timer</span></div><div className="timer-number" role="timer" aria-label={`${remaining} seconds remaining`}>{timer}</div></div>
-        <div className="timer-actions"><button className="button secondary" onClick={() => { const start = Date.now(); setNow(start); change({ ...draft, restUntil: start + 90000 }); }}>{remaining ? 'Restart' : 'Start 90s'}</button><button className="button secondary" disabled={!remaining} onClick={() => change({ ...draft, restUntil: null })}>Skip</button></div>
+        <label className="rest-setting">Rest seconds<input aria-label="Rest duration in seconds" inputMode="numeric" type="number" min="5" max="3600" step="1" value={restSeconds} onChange={event => { setRestSeconds(event.target.value); try { localStorage.setItem(`settrack:${workspace}:restSeconds`, event.target.value); } catch { /* Session-only preference. */ } }} /></label>
+        <div className="timer-actions"><button className="button secondary" onClick={() => { const start = Date.now(); setNow(start); change({ ...draft, restUntil: start + durationSeconds * 1000 }); }}>{remaining ? 'Restart' : `Start ${durationSeconds}s`}</button><button className="button secondary" disabled={!remaining} onClick={() => change({ ...draft, restUntil: null })}>Skip</button></div>
         <div className="session-actions"><button className="button primary" disabled={!count} onClick={() => count === total ? finish() : setConfirm('finish')}>Finish workout</button><button className="text-button discard" onClick={() => setConfirm('discard')}>Discard draft</button></div>
       </aside>
     </div>

@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { useEffect, useRef, useState } from 'react';
+import { useRestAlert } from './useRestAlert.ts';
 import { useWakeLock } from './useWakeLock.ts';
 import { exportBackup, importBackup } from './backup.ts';
 import { loadJournal, saveJournal } from './journal.ts';
@@ -119,6 +120,7 @@ function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwi
     setDetail(result);
   }
 
+  const restMessage = useRestAlert(journal?.draft?.restUntil);
   const wakeMessage = useWakeLock(!!journal?.draft);
   const points = journal ? progressFor(journal.history, selected) : [];
   const newRoutine = <button className="button primary" onClick={() => setEditing('new')}><Icon name="plus" size={18} /> New routine</button>;
@@ -135,6 +137,7 @@ function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwi
     <div className="body">
       <header className="topbar"><span>{page === 'workout' ? 'Active workout' : navigation.find((item) => item.id === page)?.label}</span><div role="status" className="storage-status"><i data-status={status} />{status === 'saving' ? 'Saving…' : status === 'error' ? 'Save failed' : journal ? 'Stored on this device' : 'Opening journal…'}</div></header>
       <main id="content" ref={main} tabIndex={-1}>
+        {restMessage && <p className="rest-notice" role="alert">{restMessage}</p>}
         {wakeMessage && <p className="storage-note">{wakeMessage}</p>}
         {storageError && <p className="error" role="alert">{storageError} <button className="text-button" onClick={() => location.reload()}>Reload</button></p>}
         {!journal && !storageError && <p>Opening your journal…</p>}
@@ -151,7 +154,7 @@ function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwi
               <Chart points={points} id={selected} />
               {points.length > 0 && <details><summary>Session data</summary><table className="data-table"><thead><tr><th scope="col">Date</th><th scope="col">Heaviest set</th></tr></thead><tbody>{[...points].reverse().map((point, index) => <tr key={`${point.date}-${index}`}><td>{formatDate(point.date, { day: 'numeric', month: 'short', year: 'numeric' })}</td><td>{number(point.weight)} kg</td></tr>)}</tbody></table></details>}
             </section></>}
-          {journal?.draft && page === 'workout' && <WorkoutEditor draft={journal.draft} history={journal.history} change={(draft) => save({ ...journal, draft })} finish={finish} discard={() => { save({ ...journal, draft: null }); navigate('dashboard'); }} />}
+          {journal?.draft && page === 'workout' && <WorkoutEditor workspace={workspace} draft={journal.draft} history={journal.history} change={(draft) => save({ ...journal, draft })} finish={finish} discard={() => { save({ ...journal, draft: null }); navigate('dashboard'); }} />}
         </div>
       </main>
       <footer><span>SetTrack</span><div className="backup-actions">
