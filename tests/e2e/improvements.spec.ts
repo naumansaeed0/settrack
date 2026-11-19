@@ -82,3 +82,25 @@ test('faster set entry preserves edits and draft changes survive an offline relo
   await expect(bench.getByRole('spinbutton', { name: 'Bench Press set 4 weight in kg' })).toHaveCount(0);
   await expect(page.getByRole('region', { name: 'Barbell Row', exact: true })).toHaveCount(0);
 });
+
+test('rest controls stay accessible on desktop and compact on phones', async ({ page }, info) => {
+  await page.clock.install();
+  await page.goto('./');
+  await page.getByRole('button', { name: 'Start workout', exact: true }).click();
+  if (info.project.name === 'desktop') {
+    await expect(page.getByRole('spinbutton', { name: 'Rest duration in seconds' })).toBeVisible();
+    return;
+  }
+  const panel = page.getByRole('complementary', { name: 'Rest timer and workout actions' });
+  await expect(page.getByRole('button', { name: 'Show rest controls', exact: true })).toHaveAttribute('aria-expanded', 'false');
+  expect((await panel.boundingBox())!.height).toBeLessThan(100);
+  await expect(page.getByRole('spinbutton', { name: 'Rest duration in seconds' })).toBeHidden();
+  await page.getByRole('button', { name: 'Show rest controls', exact: true }).click();
+  await page.getByRole('spinbutton', { name: 'Rest duration in seconds' }).fill('30');
+  await page.getByRole('button', { name: 'Start 30s', exact: true }).click();
+  await page.getByRole('button', { name: 'Hide rest controls', exact: true }).click();
+  await page.clock.runFor(2000);
+  await expect(page.getByRole('timer')).toHaveAttribute('aria-label', '28 seconds remaining');
+  expect((await panel.boundingBox())!.height).toBeLessThan(100);
+  await expect(page.getByRole('button', { name: 'Finish workout', exact: true })).toBeVisible();
+});

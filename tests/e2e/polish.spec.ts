@@ -118,6 +118,8 @@ test('rest alert and wake lock recover gracefully through a workout', async ({ p
   await page.goto('./');
   await page.getByRole('button', { name: 'Start workout', exact: true }).click();
   await expect(page.getByText('Screen stays awake while this workout is active and visible.')).toBeVisible();
+  const restOptions = page.getByRole('button', { name: 'Show rest controls', exact: true });
+  if (await restOptions.isVisible()) await restOptions.click();
   await page.getByRole('spinbutton', { name: 'Rest duration in seconds' }).fill('5');
   await page.getByRole('button', { name: 'Start 5s', exact: true }).click();
   await page.getByRole('button', { name: 'History', exact: true }).click();
@@ -126,6 +128,7 @@ test('rest alert and wake lock recover gracefully through a workout', async ({ p
   expect(await page.evaluate(() => (window as unknown as {deviceState: {vibrations: number}}).deviceState.vibrations)).toBe(1);
   expect(await page.evaluate(() => (window as unknown as {deviceState: {sounds: number}}).deviceState.sounds)).toBe(1);
   await page.getByRole('button', { name: 'Workout', exact: true }).click();
+  if (await restOptions.isVisible()) await restOptions.click();
   await page.getByRole('button', { name: 'Discard draft', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Discard draft', exact: true }).click();
   await expect.poll(() => page.evaluate(() => (window as unknown as {deviceState: {releases: number}}).deviceState.releases)).toBe(1);

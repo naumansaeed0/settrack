@@ -143,7 +143,7 @@ function JournalApp({ workspace, openSwitcher, usePersonal }: { workspace: Works
   const points = journal ? progressFor(journal.history, selected) : [];
   const newRoutine = <button className="button primary" onClick={() => setEditing('new')}><Icon name="plus" size={18} /> New routine</button>;
 
-  return <div className="shell">
+  return <div className={`shell ${journal?.draft ? 'has-draft' : ''}`}>
     <a className="skip" href="#content">Skip to content</a>
     <aside className="sidebar">
       <a className="brand" href="./" onClick={(event) => { if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return; event.preventDefault(); navigate('dashboard'); }}><img src={`${import.meta.env.BASE_URL}mark.svg`} width="39" height="39" alt="" /><span>SetTrack<small>Training journal</small></span></a>

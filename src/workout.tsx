@@ -8,6 +8,7 @@ export function WorkoutEditor({ draft, history, change, finish, discard, workspa
   workspace: Workspace; draft: Draft; history: Workout[]; change: (draft: Draft) => void; finish: () => void; discard: () => void;
 }) {
   const { unit, weight, inputWeight, fromInput } = useUnits();
+  const [timerExpanded, setTimerExpanded] = useState(false);
   const [restSeconds, setRestSeconds] = useState(() => { try { return localStorage.getItem(`settrack:${workspace}:restSeconds`) || '90'; } catch { return '90'; } });
   const durationSeconds = Math.min(3600, Math.max(5, Number(restSeconds) || 90));
   const [removing, setRemoving] = useState<{ id: ExerciseId; kind: 'set' | 'exercise' } | null>(null);
@@ -35,7 +36,7 @@ export function WorkoutEditor({ draft, history, change, finish, discard, workspa
   return <>
     <PageHeading title={draft.name} subtitle={`${count} of ${total} sets completed · ${duration(draft.startedAt, now)} elapsed`} action={<button className="button secondary" onClick={() => { setName(draft.name); setRenaming(true); }}>Rename workout</button>} />
     <div className="workout-completion" role="progressbar" aria-label="Workout completion" aria-valuemin={0} aria-valuemax={Math.max(1, total)} aria-valuenow={count}><span style={{ width: `${total ? count / total * 100 : 0}%` }} /></div>
-    <div className="session-grid">
+    <div className={`session-grid ${timerExpanded ? 'rest-expanded' : ''}`}>
       <div className="lift-list">
         {!draft.lifts.length && <section className="panel"><Empty title="What are you lifting today?">Add an exercise to log your first set.</Empty></section>}
         {draft.lifts.map((lift) => {
@@ -57,11 +58,15 @@ export function WorkoutEditor({ draft, history, change, finish, discard, workspa
         })}
         <button className="button secondary add-exercise" onClick={() => setAdding(true)}><Icon name="plus" size={18} /> Add exercise</button>
       </div>
-      <aside className="panel timer-panel" aria-label="Rest timer and workout actions">
+      <aside className="panel timer-panel" data-expanded={timerExpanded} aria-label="Rest timer and workout actions">
         <div className="timer-content"><div className="timer-label"><Icon name="timer" /><span>Rest timer</span></div><div className="timer-number" role="timer" aria-label={`${remaining} seconds remaining`}>{timer}</div></div>
-        <label className="rest-setting">Rest seconds<input aria-label="Rest duration in seconds" inputMode="numeric" type="number" min="5" max="3600" step="1" value={restSeconds} onChange={event => { setRestSeconds(event.target.value); try { localStorage.setItem(`settrack:${workspace}:restSeconds`, event.target.value); } catch { /* Session-only preference. */ } }} /></label>
-        <div className="timer-actions"><button className="button secondary" onClick={() => { const start = Date.now(); setNow(start); change({ ...draft, restUntil: start + durationSeconds * 1000 }); }}>{remaining ? 'Restart' : `Start ${durationSeconds}s`}</button><button className="button secondary" disabled={!remaining} onClick={() => change({ ...draft, restUntil: null })}>Skip</button></div>
-        <div className="session-actions"><button className="button primary" disabled={!count} onClick={() => count === total ? finish() : setConfirm('finish')}>Finish workout</button><button className="text-button discard" onClick={() => setConfirm('discard')}>Discard draft</button></div>
+        <button className="timer-toggle button secondary" aria-expanded={timerExpanded} aria-controls="rest-controls" aria-label={timerExpanded ? 'Hide rest controls' : 'Show rest controls'} onClick={() => setTimerExpanded(!timerExpanded)}><span>Options</span><Icon name={timerExpanded ? 'down' : 'up'} size={16} /></button>
+        <div className="rest-controls" id="rest-controls">
+          <label className="rest-setting">Rest seconds<input aria-label="Rest duration in seconds" inputMode="numeric" type="number" min="5" max="3600" step="1" value={restSeconds} onChange={event => { setRestSeconds(event.target.value); try { localStorage.setItem(`settrack:${workspace}:restSeconds`, event.target.value); } catch { /* Session-only preference. */ } }} /></label>
+          <div className="timer-actions"><button className="button secondary" onClick={() => { const start = Date.now(); setNow(start); change({ ...draft, restUntil: start + durationSeconds * 1000 }); }}>{remaining ? 'Restart' : `Start ${durationSeconds}s`}</button><button className="button secondary" disabled={!remaining} onClick={() => change({ ...draft, restUntil: null })}>Skip</button></div>
+          <button className="text-button discard" onClick={() => setConfirm('discard')}>Discard draft</button>
+        </div>
+        <div className="session-actions"><button className="button primary" disabled={!count} onClick={() => count === total ? finish() : setConfirm('finish')}>Finish workout</button></div>
       </aside>
     </div>
     {renaming && <Modal title="Rename workout" onClose={() => setRenaming(false)}><form onSubmit={event => { event.preventDefault(); if (!name.trim()) return; change({ ...draft, name: name.trim() }); setRenaming(false); }}><label className="field">Workout name<input autoFocus required maxLength={60} value={name} onChange={e => setName(e.target.value)} /></label><div className="modal-actions"><button type="button" className="button secondary" onClick={() => setRenaming(false)}>Cancel</button><button className="button primary" disabled={!name.trim()}>Save name</button></div></form></Modal>}

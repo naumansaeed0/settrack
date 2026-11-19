@@ -298,3 +298,26 @@ button, .icon-button { min-width: 44px; }
 .lift-actions { display: flex; flex-wrap: wrap; gap: 4px 12px; padding-top: 6px; align-items: center; }
 .lift-actions .add-set { margin: 0; }
 .muted-action { color: var(--muted); }
+.timer-toggle { display: none; }
+.rest-controls { display: grid; gap: 8px; }
+.rest-controls .discard { justify-self: start; }
+@media (max-width: 700px) {
+  .session-grid { padding-bottom: 110px; }
+  .session-grid.rest-expanded { padding-bottom: 300px; }
+  .timer-panel { grid-template-columns: minmax(65px, 1fr) auto minmax(110px, 1.45fr); gap: 10px; padding: 10px 12px max(10px, env(safe-area-inset-bottom)); max-height: 65dvh; overflow: auto; }
+  .timer-toggle { display: inline-flex; grid-column: 2; grid-row: 1; padding-inline: 8px; font-size: .75rem; }
+  .timer-panel .timer-content { grid-column: 1; grid-row: 1; }
+  .timer-panel .timer-label { font-size: .7rem; }
+  .timer-panel .timer-number { font-size: 1.8rem; }
+  .timer-panel .session-actions { grid-column: 3; grid-row: 1; margin: 0; }
+  .timer-panel .session-actions .button { font-size: .83rem; padding-inline: 8px; }
+  .timer-panel .rest-controls { display: none; }
+  .timer-panel[data-expanded='true'] .rest-controls { display: grid; grid-column: 1/-1; grid-row: 2; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .rest-controls .rest-setting { margin: 0; }
+  .rest-controls .timer-actions { align-self: end; }
+  .rest-controls .discard { grid-column: 1/-1; }
+  .has-draft .body { padding-bottom: 85px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+}
