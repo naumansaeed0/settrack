@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "test": "node --test tests/*.test.ts",
     "test:e2e": "playwright test",
-    "deploy": "npm run build && gh-pages -d dist --dotfiles"
+    "deploy": "npm run build && gh-pages -d dist --dotfiles --remove \"{**/*,.github/**,.gitignore}\""
   },
   "dependencies": {
     "react": "19.1.0",
