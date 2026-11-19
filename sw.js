@@ -1,5 +1,5 @@
-const version = "c0087e8d5079";
-const files = ["/settrack/assets/hero-tip2G_vI.webp","/settrack/assets/index-BhOm8yco.js","/settrack/assets/index-CMOjBpuE.css","/settrack/icon-192.png","/settrack/icon-512.png","/settrack/index.html","/settrack/manifest.webmanifest","/settrack/mark.svg"];
+const version = "20acb5f6890b";
+const files = ["/settrack/assets/ibm-plex-mono-latin-400-normal-DMJ8VG8y.woff2","/settrack/assets/index-B4bDvPfY.js","/settrack/assets/index-BQp6xNnK.css","/settrack/assets/space-grotesk-latin-wght-normal-BhU9QXUp.woff2","/settrack/icon-192.png","/settrack/icon-512.png","/settrack/index.html","/settrack/manifest.webmanifest","/settrack/mark.svg"];
 const prefix = `settrack-shell:${self.registration.scope}:`;
 const cacheName = `${prefix}${version}`;
 const shell = new URL('index.html', self.registration.scope).href;
