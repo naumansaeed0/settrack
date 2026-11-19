@@ -6,8 +6,8 @@ import { UnitProvider, useUnits } from './units.tsx';
 import { useRestAlert } from './useRestAlert.ts';
 import { useWakeLock } from './useWakeLock.ts';
 import { exportBackup, importBackup } from './backup.ts';
-import { loadJournal, saveJournal } from './journal.ts';
-import { demoJournal, emptyJournal, exercise, finishWorkout, library, progressFor, repeatWorkout, startWorkout, workoutStats,
+import { moveDraftToPersonal, loadSafety, storageMessage, loadJournal, saveJournal } from './journal.ts';
+import { demoJournal, emptyJournal, exercise, finishWorkout, library, progressMetric, progressFor, repeatWorkout, startWorkout, workoutStats,
   type ExerciseId, type Journal, type Routine, type Workout, type Workspace } from './training.ts';
 import { Chart, duration, Empty, formatDate, Icon, Modal, number, PageHeading, WorkoutRows } from './ui.tsx';
 import { RoutineEditor, WorkoutDetail, WorkoutEditor } from './workout.tsx';
@@ -64,6 +64,7 @@ function JournalApp({ workspace, openSwitcher, usePersonal }: { workspace: Works
   const [storageError, setStorageError] = useState('');
   const [persistence, setPersistence] = useState('');
   const [backupError, setBackupError] = useState('');
+  const [undoImport, setUndoImport] = useState(false);
   const [imported, setImported] = useState<Journal | null>(null);
   const pending = useRef(Promise.resolve());
   const lastSave = useRef(0);
@@ -91,7 +92,7 @@ function JournalApp({ workspace, openSwitcher, usePersonal }: { workspace: Works
         setSelected(next.history[0]?.lifts[0]?.exerciseId ?? next.routines[0]?.targets[0]?.exerciseId ?? 'bench');
         if (!next.draft && routePage() === 'workout') { setPage('dashboard'); location.hash = 'dashboard'; }
       }
-    }).catch(() => { if (active) setStorageError('IndexedDB is unavailable. Private browsing, blocked site storage or a full device may prevent saving. Allow site storage, free space and reload.'); });
+    }).catch((error) => { if (active) setStorageError(storageMessage(error)); });
     return () => { active = false; };
   }, [workspace]);
 
@@ -123,11 +124,19 @@ function JournalApp({ workspace, openSwitcher, usePersonal }: { workspace: Works
     write.then(() => { if (ticket === lastSave.current) setStatus('ready'); }, (error: unknown) => {
       if (ticket === lastSave.current) {
         setStatus('error');
-        setStorageError(error instanceof Error && error.message === 'workspace-conflict'
-          ? 'This journal changed in another tab. Reload to see the saved version.'
-          : 'This change could not be saved to IndexedDB (storage blocked or quota exceeded). Export your journal now, then free storage and reload.');
+        setStorageError(storageMessage(error));
       }
     });
+  }
+
+  async function replaceJournal(next: Journal, keepSafety = true) {
+    if (!journal || storageError) return;
+    setStatus('saving');
+    try {
+      await pending.current;
+      version.current = await saveJournal(workspace, next, version.current, keepSafety ? journal : undefined);
+      setJournal(next); setImported(null); setDetail(null); setUndoImport(keepSafety); setStatus('ready'); navigate('dashboard');
+    } catch (error) { setStatus('error'); setStorageError(storageMessage(error)); }
   }
 
   function start(routine?: Routine) {
@@ -147,6 +156,7 @@ function JournalApp({ workspace, openSwitcher, usePersonal }: { workspace: Works
 
   const restMessage = useRestAlert(journal?.draft?.restUntil);
   const wakeMessage = useWakeLock(!!journal?.draft);
+  const metric = journal ? progressMetric(journal.history, selected) : 'weight';
   const points = journal ? progressFor(journal.history, selected) : [];
   const newRoutine = <button className="button primary" onClick={() => setEditing('new')}><Icon name="plus" size={18} /> New routine</button>;
 
@@ -177,11 +187,11 @@ function JournalApp({ workspace, openSwitcher, usePersonal }: { workspace: Works
           {journal && page === 'history' && <WorkoutHistory history={journal.history} open={setDetail} />}
           {journal && page === 'progress' && <><PageHeading title="Lift progress" subtitle="Follow your heaviest completed set from session to session." />
             <section className="panel progress-panel"><div className="section-heading"><h2>{exercise(selected).name}</h2><label className="field"><span className="sr-only">Exercise</span><select value={selected} onChange={(event) => setSelected(event.target.value as ExerciseId)}>{library.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label></div>
-              {points.length > 0 && <div className="progress-metrics"><div><small>Heaviest set</small><strong>{number(weight(Math.max(...points.map((point) => point.weight))))} <small>{unit}</small></strong></div><div><small>Sessions</small><strong>{points.length}</strong></div></div>}
-              <Chart points={points} id={selected} />
-              {points.length > 0 && <details><summary>Session data</summary><table className="data-table"><thead><tr><th scope="col">Date</th><th scope="col">Heaviest set</th></tr></thead><tbody>{[...points].reverse().map((point, index) => <tr key={`${point.date}-${index}`}><td>{formatDate(point.date, { day: 'numeric', month: 'short', year: 'numeric' })}</td><td>{number(weight(point.weight))} {unit}</td></tr>)}</tbody></table></details>}
+              {points.length > 0 && <div className="progress-metrics"><div><small>Heaviest set</small><strong>{number(metric === 'weight' ? weight(Math.max(...points.map((point) => point.weight))) : Math.max(...points.map(point => point.weight)))} <small>{metric === 'weight' ? unit : metric}</small></strong></div><div><small>Sessions</small><strong>{points.length}</strong></div></div>}
+              <Chart metric={metric} points={points} id={selected} />
+              {points.length > 0 && <details><summary>Session data</summary><table className="data-table"><thead><tr><th scope="col">Date</th><th scope="col">Heaviest set</th></tr></thead><tbody>{[...points].reverse().map((point, index) => <tr key={`${point.date}-${index}`}><td>{formatDate(point.date, { day: 'numeric', month: 'short', year: 'numeric' })}</td><td>{number(metric === 'weight' ? weight(point.weight) : point.weight)} {metric === 'weight' ? unit : metric}</td></tr>)}</tbody></table></details>}
             </section></>}
-          {journal?.draft && page === 'workout' && <WorkoutEditor workspace={workspace} draft={journal.draft} history={journal.history} change={(draft) => save({ ...journal, draft })} finish={finish} discard={() => { save({ ...journal, draft: null }); navigate('dashboard'); }} />}
+          {journal?.draft && page === 'workout' && <WorkoutEditor switchToPersonal={async () => { try { await pending.current; await moveDraftToPersonal(version.current); usePersonal(); } catch (error) { setBackupError(error instanceof Error ? error.message : 'The draft could not be moved. It remains in Demo.'); } }} workspace={workspace} draft={journal.draft} history={journal.history} change={(draft) => save({ ...journal, draft })} finish={finish} discard={() => { save({ ...journal, draft: null }); navigate('dashboard'); }} />}
         </div>
       </main>
       <footer><span>SetTrack</span><div className="backup-actions">
@@ -198,9 +208,10 @@ function JournalApp({ workspace, openSwitcher, usePersonal }: { workspace: Works
           catch (error) { setBackupError(error instanceof Error ? error.message : 'Could not read backup file.'); }
         }} /></div><span>Strength training journal</span></footer>
       {persistence && <p className="storage-note">{persistence}</p>}
+      {undoImport && <div className="rest-notice"><p>Backup restored. Your previous journal is kept as a safety snapshot.</p><button className="button secondary" onClick={async () => { const previous = await loadSafety(workspace); if (previous) await replaceJournal(previous, false); }}>Undo import</button></div>}
       {backupError && <p className="error" role="alert">{backupError}</p>}
     </div>
-    {imported && <Modal title="Replace this journal?" onClose={() => setImported(null)}><p>This will replace all routines, past workouts and the active draft in {workspace === 'demo' ? 'Demo journal' : 'My journal'} with the backup. Export your current journal first to keep a copy.</p><div className="modal-actions"><button className="button secondary" onClick={() => setImported(null)}>Cancel import</button><button className="button danger" disabled={status === 'saving'} onClick={() => { save(imported); setImported(null); setDetail(null); navigate('dashboard'); }}>Replace journal</button></div></Modal>}
+    {imported && <Modal title="Replace this journal?" onClose={() => setImported(null)}><p>This will replace all routines, past workouts and the active draft in {workspace === 'demo' ? 'Demo journal' : 'My journal'} with the backup. Export your current journal first to keep a copy.</p><div className="modal-actions"><button className="button secondary" onClick={() => setImported(null)}>Cancel import</button><button className="button danger" disabled={status === 'saving'} onClick={() => { void replaceJournal(imported); }}>Replace journal</button></div></Modal>}
     {editing && journal && <RoutineEditor initial={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} onSave={(routine) => {
       save({ ...journal, routines: editing === 'new' ? [...journal.routines, routine] : journal.routines.map((item) => item.id === routine.id ? routine : item) });
       setEditing(null);
@@ -220,6 +231,7 @@ function Overview({ journal, start, open, navigate, newRoutine, workspace, usePe
   const month = Date.now() - 30 * 86400000;
   const lastMonth = journal.history.filter((workout) => workout.finishedAt >= month);
   const volume = lastMonth.reduce((sum, workout) => sum + workoutStats(workout).volume, 0);
+  const metric = progressMetric(journal.history, chartExercise);
   const points = progressFor(journal.history, chartExercise);
   const current = points.at(-1)?.weight;
   return <>
@@ -239,9 +251,9 @@ function Overview({ journal, start, open, navigate, newRoutine, workspace, usePe
     </div>
     <div className="overview-grid">
       <section className="panel dashboard-chart"><div className="section-heading"><div><h2>{exercise(chartExercise).name}</h2><p>Heaviest set by session</p></div><button className="text-button" onClick={() => onProgress(chartExercise)}>View progress <Icon name="chevron" size={15} /></button></div>
-        {current !== undefined && <div className="chart-value">{number(weight(current))} <small>{unit}</small>{points.length > 1 && points.at(-2)!.weight !== current && <span>{current > points.at(-2)!.weight ? '+' : '−'}{number(weight(Math.abs(current - points.at(-2)!.weight)))} {unit}</span>}</div>}
+        {current !== undefined && <div className="chart-value">{number(metric === 'weight' ? weight(current) : current)} <small>{metric === 'weight' ? unit : metric}</small>{points.length > 1 && points.at(-2)!.weight !== current && <span>{current > points.at(-2)!.weight ? '+' : '−'}{number(weight(Math.abs(current - points.at(-2)!.weight)))} {unit}</span>}</div>}
         <label className="field chart-select"><span className="sr-only">Overview exercise</span><select value={chartExercise} onChange={event => setChartExercise(event.target.value as ExerciseId)}>{library.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-        <Chart points={points} id={chartExercise} />
+        <Chart metric={metric} points={points} id={chartExercise} />
       </section>
       <section className="panel recent"><div className="section-heading"><h2>Recent workouts</h2><button className="text-button" onClick={() => navigate('history')}>View all <Icon name="chevron" size={15} /></button></div>
         {journal.history.length ? <WorkoutRows workouts={journal.history.slice(0, 4)} open={open} /> : <Empty title="No workouts logged">Your finished workouts will appear here.</Empty>}

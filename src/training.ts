@@ -8,16 +8,21 @@ export const library = [
   { id: 'split', name: 'Split Squat', group: 'Legs' },
   { id: 'leg-curl', name: 'Leg Curl', group: 'Legs' },
   { id: 'curl', name: 'Dumbbell Curl', group: 'Arms' },
+  { id: 'pull-up', name: 'Pull-up', group: 'Back' },
+  { id: 'dip', name: 'Dip', group: 'Chest' },
+  { id: 'plank', name: 'Plank', group: 'Core' },
   { id: 'push-up', name: 'Push-up', group: 'Chest' },
 ] as const;
 
 export type ExerciseId = (typeof library)[number]['id'];
 export const exercise = (id: ExerciseId) => library.find((item) => item.id === id)!;
 
-export type Target = { exerciseId: ExerciseId; sets: number; reps: number };
+export type ExerciseType = 'weight' | 'bodyweight' | 'timed';
+export const exerciseType = (lift: { exerciseId: ExerciseId; type?: ExerciseType }): ExerciseType => lift.type ?? (lift.exerciseId === 'plank' ? 'timed' : ['pull-up', 'dip'].includes(lift.exerciseId) ? 'bodyweight' : 'weight');
+export type Target = { type?: ExerciseType; exerciseId: ExerciseId; sets: number; reps: number };
 export type Routine = { id: string; name: string; targets: Target[] };
-export type SetEntry = { id: string; weight: string; reps: string; done: boolean };
-export type Lift = { exerciseId: ExerciseId; sets: SetEntry[] };
+export type SetEntry = { id: string; weight: string; reps: string; done: boolean; seconds?: string; enteredWeight?: { unit: Unit; value: string } };
+export type Lift = { type?: ExerciseType; exerciseId: ExerciseId; sets: SetEntry[] };
 export type Draft = { id: string; name: string; startedAt: number; restUntil: number | null; lifts: Lift[] };
 export type Workout = Omit<Draft, 'restUntil'> & { finishedAt: number };
 export type Journal = { routines: Routine[]; history: Workout[]; draft: Draft | null };
@@ -33,13 +38,15 @@ export function startWorkout(routine?: Routine, startedAt = Date.now()): Draft {
   return {
     id: crypto.randomUUID(), name: routine?.name ?? 'Free Workout', startedAt, restUntil: null,
     lifts: (routine?.targets ?? []).map((target) => ({
-      exerciseId: target.exerciseId,
-      sets: Array.from({ length: target.sets }, () => makeSet(String(target.reps))),
+      exerciseId: target.exerciseId, type: exerciseType(target),
+      sets: Array.from({ length: target.sets }, () => ({ ...makeSet(exerciseType(target) === 'timed' ? '' : String(target.reps)), ...(exerciseType(target) === 'timed' ? { seconds: String(target.reps) } : {}) })),
     })),
   };
 }
 
-export function validSet(set: SetEntry) {
+export function validSet(set: SetEntry, type: ExerciseType = 'weight') {
+  if (type === 'timed') return !!set.seconds?.trim() && Number.isInteger(Number(set.seconds)) && Number(set.seconds) > 0 && Number(set.seconds) <= 86400;
+  if (type === 'bodyweight') return Number.isInteger(Number(set.reps)) && Number(set.reps) >= 1 && Number(set.reps) <= 200;
   const weight = Number(set.weight);
   const reps = Number(set.reps);
   return set.weight.trim() !== '' && Number.isFinite(weight) && weight >= 0 && weight <= 1000
@@ -48,7 +55,7 @@ export function validSet(set: SetEntry) {
 
 export function finishWorkout(draft: Draft, finishedAt = Date.now()): Workout | null {
   const lifts = draft.lifts.map((lift) => ({
-    exerciseId: lift.exerciseId, sets: lift.sets.filter((set) => set.done && validSet(set)).map((set) => ({ ...set })),
+    exerciseId: lift.exerciseId, type: exerciseType(lift), sets: lift.sets.filter((set) => set.done && validSet(set, exerciseType(lift))).map((set) => ({ ...set })),
   })).filter((lift) => lift.sets.length > 0);
   if (!lifts.length) return null;
   return { id: draft.id, name: draft.name, startedAt: draft.startedAt, finishedAt, lifts };
@@ -56,15 +63,22 @@ export function finishWorkout(draft: Draft, finishedAt = Date.now()): Workout | 
 
 export function workoutStats(workout: Pick<Workout, 'lifts'>) {
   const sets = workout.lifts.flatMap((lift) => lift.sets).filter((set) => set.done);
-  return { sets: sets.length, volume: sets.reduce((sum, set) => sum + Number(set.weight) * Number(set.reps), 0) };
+  return { sets: sets.length, volume: sets.reduce((sum, set) => sum + Number(set.weight || 0) * Number(set.reps || 0), 0) };
 }
 
-export function progressFor(history: Workout[], id: ExerciseId) {
-  return history.flatMap((workout) => {
-    const sets = workout.lifts.find((lift) => lift.exerciseId === id)?.sets;
-    if (!sets?.length) return [];
-    return [{ date: workout.finishedAt, weight: Math.max(...sets.map((set) => Number(set.weight))) }];
-  }).sort((a, b) => a.date - b.date);
+export type ProgressMetric = 'weight' | 'reps' | 'seconds';
+export function progressMetric(history: Workout[], id: ExerciseId): ProgressMetric {
+  const lift = [...history].sort((a,b) => b.finishedAt - a.finishedAt).find(w => w.lifts.some(l => l.exerciseId === id))?.lifts.find(l => l.exerciseId === id);
+  if (!lift) return exerciseType({ exerciseId: id }) === 'timed' ? 'seconds' : ['pull-up','dip','push-up'].includes(id) ? 'reps' : 'weight';
+  return exerciseType(lift) === 'timed' ? 'seconds' : exerciseType(lift) === 'bodyweight' || lift.sets.every(s => Number(s.weight) === 0) ? 'reps' : 'weight';
+}
+export function progressFor(history: Workout[], id: ExerciseId, metric = progressMetric(history, id)) {
+  return history.flatMap(workout => {
+    const lift = workout.lifts.find(l => l.exerciseId === id);
+    if (!lift?.sets.length) return [];
+    if (metric === 'seconds' && exerciseType(lift) !== 'timed' || metric !== 'seconds' && exerciseType(lift) === 'timed') return [];
+    return [{ date: workout.finishedAt, weight: Math.max(...lift.sets.filter(s => s.done && validSet(s, exerciseType(lift))).map(s => Number(metric === 'seconds' ? s.seconds : metric === 'reps' ? s.reps : s.weight))) }].filter(p => Number.isFinite(p.weight));
+  }).sort((a,b) => a.date - b.date);
 }
 
 export function previousSets(history: Workout[], id: ExerciseId) {
@@ -74,8 +88,9 @@ export function previousSets(history: Workout[], id: ExerciseId) {
 
 export function recordsFor(workout: Workout, history: Workout[]) {
   return workout.lifts.flatMap((lift) => {
-    const previous = progressFor(history.filter((item) => item.finishedAt < workout.finishedAt), lift.exerciseId);
-    const weight = Math.max(...lift.sets.map((set) => Number(set.weight)));
+    const metric = progressMetric([workout], lift.exerciseId);
+    const previous = progressFor(history.filter((item) => item.finishedAt < workout.finishedAt), lift.exerciseId, metric);
+    const weight = Math.max(...lift.sets.map((set) => Number(metric === 'seconds' ? set.seconds : metric === 'reps' ? set.reps : set.weight)));
     return previous.length && weight > Math.max(...previous.map((point) => point.weight))
       ? [{ exerciseId: lift.exerciseId, weight }] : [];
   });
@@ -125,13 +140,13 @@ export function demoJournal(now = Date.now()): Journal {
 export type Unit = 'kg' | 'lb';
 const factor = 2.2046226218;
 export const displayWeight = (kg: number, unit: Unit) => Math.round(kg * (unit === 'lb' ? factor : 1) * 100) / 100;
-export const storedWeight = (value: string, unit: Unit) => value.trim() === '' ? '' : String(Math.round(Number(value) / (unit === 'lb' ? factor : 1) * 1e6) / 1e6);
+export const storedWeight = (value: string, unit: Unit) => value.trim() === '' ? '' : Number.isFinite(Number(value)) ? String(Math.round(Number(value) / (unit === 'lb' ? factor : 1) * 1e9) / 1e9) : '';
 
 export function repeatWorkout(workout: Workout, startedAt = Date.now()): Draft {
   return {
     id: crypto.randomUUID(), name: workout.name, startedAt, restUntil: null,
-    lifts: workout.lifts.map(lift => ({ exerciseId: lift.exerciseId, sets: lift.sets.map(set => ({
-      id: crypto.randomUUID(), weight: set.weight, reps: set.reps, done: false,
+    lifts: workout.lifts.map(lift => ({ exerciseId: lift.exerciseId, type: exerciseType(lift), sets: lift.sets.map(set => ({
+      id: crypto.randomUUID(), weight: set.weight, reps: set.reps, seconds: set.seconds, done: false,
     })) })),
   };
 }
@@ -142,7 +157,7 @@ export function filterWorkouts(history: Workout[], query = '', exerciseId: Exerc
     const text = `${workout.name} ${workout.lifts.map(lift => exercise(lift.exerciseId).name).join(' ')}`.toLowerCase();
     return terms.every(term => text.includes(term))
       && (!exerciseId || workout.lifts.some(lift => lift.exerciseId === exerciseId))
-      && (!days || workout.finishedAt >= now - days * 86400000 && workout.finishedAt <= now);
+      && (!days || workout.finishedAt >= localDayStart(now, days - 1) && workout.finishedAt <= now);
   }).sort((a, b) => b.finishedAt - a.finishedAt);
 }
 
@@ -155,8 +170,16 @@ export function fillPreviousWeights(lift: Lift, previous: SetEntry[]): Lift {
 }
 
 export function appendSet(lift: Lift): Lift {
-  const last = [...lift.sets].reverse().find(validSet);
-  return { ...lift, sets: [...lift.sets, { ...makeSet(last?.reps ?? lift.sets.at(-1)?.reps), weight: last?.weight ?? '' }] };
+  const last = [...lift.sets].reverse().find(set => validSet(set, exerciseType(lift)));
+  return { ...lift, sets: [...lift.sets, { ...makeSet(last?.reps ?? lift.sets.at(-1)?.reps), weight: last?.weight ?? '', ...(last?.seconds ? { seconds: last.seconds } : {}) }] };
 }
 
-export const incompleteSets = (draft: Draft) => draft.lifts.flatMap(lift => lift.sets).filter(set => !set.done || !validSet(set));
+export const incompleteSets = (draft: Draft) => draft.lifts.flatMap(lift => lift.sets.filter(set => !set.done || !validSet(set, exerciseType(lift))));
+
+export function localDayStart(now: number, daysAgo = 0) { const date = new Date(now); date.setDate(date.getDate() - daysAgo); date.setHours(0,0,0,0); return +date; }
+export function migrateJournal(journal: Journal): Journal {
+  const next = structuredClone(journal);
+  next.routines.forEach(r => r.targets.forEach(t => { t.type ??= 'weight'; }));
+  [...next.history, ...(next.draft ? [next.draft] : [])].forEach(w => w.lifts.forEach(l => { l.type ??= 'weight'; }));
+  return next;
+}

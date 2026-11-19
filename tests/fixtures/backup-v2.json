@@ -1,0 +1,263 @@
+{
+  "app": "settrack",
+  "version": 2,
+  "journal": {
+    "routines": [
+      {
+        "id": "upper-a",
+        "name": "Upper Body A",
+        "targets": [
+          {
+            "exerciseId": "bench",
+            "sets": 3,
+            "reps": 8
+          },
+          {
+            "exerciseId": "row",
+            "sets": 3,
+            "reps": 8
+          },
+          {
+            "exerciseId": "press",
+            "sets": 3,
+            "reps": 8
+          },
+          {
+            "exerciseId": "pulldown",
+            "sets": 3,
+            "reps": 8
+          }
+        ]
+      },
+      {
+        "id": "lower-a",
+        "name": "Lower Body A",
+        "targets": [
+          {
+            "exerciseId": "squat",
+            "sets": 3,
+            "reps": 8
+          },
+          {
+            "exerciseId": "deadlift",
+            "sets": 3,
+            "reps": 8
+          },
+          {
+            "exerciseId": "split",
+            "sets": 3,
+            "reps": 8
+          },
+          {
+            "exerciseId": "leg-curl",
+            "sets": 3,
+            "reps": 8
+          }
+        ]
+      }
+    ],
+    "history": [
+      {
+        "id": "sample-2",
+        "name": "Upper Body A",
+        "finishedAt": 1794922200000,
+        "startedAt": 1794919440000,
+        "lifts": [
+          {
+            "exerciseId": "bench",
+            "sets": [
+              {
+                "id": "sample-2-0-0",
+                "weight": "60",
+                "reps": "8",
+                "done": true
+              },
+              {
+                "id": "sample-2-0-1",
+                "weight": "60",
+                "reps": "8",
+                "done": true
+              },
+              {
+                "id": "sample-2-0-2",
+                "weight": "60",
+                "reps": "8",
+                "done": true
+              }
+            ]
+          },
+          {
+            "exerciseId": "row",
+            "sets": [
+              {
+                "id": "sample-2-1-0",
+                "weight": "55",
+                "reps": "8",
+                "done": true
+              },
+              {
+                "id": "sample-2-1-1",
+                "weight": "55",
+                "reps": "8",
+                "done": true
+              },
+              {
+                "id": "sample-2-1-2",
+                "weight": "55",
+                "reps": "8",
+                "done": true
+              }
+            ]
+          },
+          {
+            "exerciseId": "press",
+            "sets": [
+              {
+                "id": "sample-2-2-0",
+                "weight": "35",
+                "reps": "8",
+                "done": true
+              },
+              {
+                "id": "sample-2-2-1",
+                "weight": "35",
+                "reps": "8",
+                "done": true
+              },
+              {
+                "id": "sample-2-2-2",
+                "weight": "35",
+                "reps": "8",
+                "done": true
+              }
+            ]
+          },
+          {
+            "exerciseId": "pulldown",
+            "sets": [
+              {
+                "id": "sample-2-3-0",
+                "weight": "50",
+                "reps": "8",
+                "done": true
+              },
+              {
+                "id": "sample-2-3-1",
+                "weight": "50",
+                "reps": "8",
+                "done": true
+              },
+              {
+                "id": "sample-2-3-2",
+                "weight": "50",
+                "reps": "8",
+                "done": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "sample-4",
+        "name": "Lower Body A",
+        "finishedAt": 1794749400000,
+        "startedAt": 1794746340000,
+        "lifts": [
+          {
+            "exerciseId": "squat",
+            "sets": [
+              {
+                "id": "sample-4-0-0",
+                "weight": "85",
+                "reps": "8",
+                "done": true
+              },
+              {
+                "id": "sample-4-0-1",
+                "weight": "85",
+                "reps": "8",
+                "done": true
+              },
+              {
+                "id": "sample-4-0-2",
+                "weight": "85",
+                "reps": "8",
+                "done": true
+              }
+            ]
+          },
+          {
+            "exerciseId": "deadlift",
+            "sets": [
+              {
+                "id": "sample-4-1-0",
+                "weight": "75",
+                "reps": "8",
+                "done": true
+              },
+              {
+                "id": "sample-4-1-1",
+                "weight": "75",
+                "reps": "8",
+                "done": true
+              },
+              {
+                "id": "sample-4-1-2",
+                "weight": "75",
+                "reps": "8",
+                "done": true
+              }
+            ]
+          },
+          {
+            "exerciseId": "split",
+            "sets": [
+              {
+                "id": "sample-4-2-0",
+                "weight": "20",
+                "reps": "8",
+                "done": true
+              },
+              {
+                "id": "sample-4-2-1",
+                "weight": "20",
+                "reps": "8",
+                "done": true
+              },
+              {
+                "id": "sample-4-2-2",
+                "weight": "20",
+                "reps": "8",
+                "done": true
+              }
+            ]
+          },
+          {
+            "exerciseId": "leg-curl",
+            "sets": [
+              {
+                "id": "sample-4-3-0",
+                "weight": "35",
+                "reps": "8",
+                "done": true
+              },
+              {
+                "id": "sample-4-3-1",
+                "weight": "35",
+                "reps": "8",
+                "done": true
+              },
+              {
+                "id": "sample-4-3-2",
+                "weight": "35",
+                "reps": "8",
+                "done": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "draft": null
+  }
+}

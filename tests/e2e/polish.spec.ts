@@ -20,7 +20,7 @@ test('backup import validates data, confirms overwrite and exports the whole jou
   await page.getByRole('button', { name: 'Export journal' }).click();
   const download = await downloadPromise;
   const exported = JSON.parse(await readFile((await download.path())!, 'utf8'));
-  expect(exported.version).toBe(2);
+  expect(exported.version).toBe(3);
   expect(exported.journal.history).toHaveLength(9);
   expect(exported.journal.routines).toHaveLength(2);
   await input.setInputFiles(backupFile(emptyBackup));

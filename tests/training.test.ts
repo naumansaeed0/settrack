@@ -118,3 +118,11 @@ test('finish explicitly reports unchecked and invalid completed sets', async () 
   assert.equal(incompleteSets(draft).length, 11);
   assert.equal(finishWorkout(draft)!.lifts[0].sets.length, 1);
 });
+
+test('pounds round trips and the canonical weight boundary are consistent', async () => {
+  const {storedWeight,displayWeight,localDayStart}=await import('../src/training.ts');
+  assert.equal(displayWeight(Number(storedWeight('135','lb')),'lb'),135);
+  assert.equal(validSet({id:'x',weight:storedWeight('2204.62','lb'),reps:'1',done:true}),true);
+  assert.equal(validSet({id:'x',weight:storedWeight('2204.63','lb'),reps:'1',done:true}),false);
+  const now=+new Date(2026,10,19,0,1);assert.equal(localDayStart(now,6),+new Date(2026,10,13,0,0));
+});
