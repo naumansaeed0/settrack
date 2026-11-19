@@ -11,6 +11,8 @@ SetTrack is a strength-training journal that puts your previous sets beside toda
 3. Select **Finish workout**, then **Save workout**. The summary highlights your new heaviest set.
 4. Select **View progress** to see the new weight on the chart.
 
+The demo is clearly marked as sample data. **Use my journal** opens your separate workspace, with optional editable starter routines and no sample history. SetTrack remembers your workspace for the next visit.
+
 Use **Demo journal → My journal** to start with a separate, empty workspace. Both journals use browser-local storage.
 
 ## What’s inside
@@ -19,7 +21,9 @@ Use **Demo journal → My journal** to start with a separate, empty workspace. B
 - An active workout log with previous-session values, draft recovery, a configurable rest timer with vibration/sound, and screen keep-awake when supported.
 - Per-workspace kg/lb preferences, with weights stored canonically in kilograms.
 - Validated JSON backups, confirmed imports, and editing/deletion of past workouts and sets.
-- Session summaries, workout history, per-lift charts, and the underlying chart values in a table.
+- Searchable workout history with exercise and period filters, plus **Repeat workout** to start from a past session with fresh, unchecked sets.
+- One-tap **Use last weights** for empty entries, new sets that reuse the previous values, named drafts, and confirmed removal of draft sets/exercises.
+- Session summaries, selectable lift charts on Overview, detailed per-lift progress, and the underlying chart values in a table.
 - An installable PWA with maskable icons, dark mode, offline access after installation, and an update prompt that preserves saved journal data.
 
 ## Screenshots
@@ -36,7 +40,7 @@ The app requests persistent storage, but the browser decides whether to grant it
 
 Open a workout in **History → Edit workout** to correct its name, date, weights, or reps, or delete individual sets. Set deletions take effect on **Save changes**. Deleting an entire workout requires confirmation.
 
-During a workout, set **Rest seconds** (5–3600); completing a set starts that duration. Sound requires an interaction with the page, and vibration/wake lock depend on device and browser support. A visible notice also announces the timer ending. Backgrounded or locked mobile browsers may delay alerts until the app resumes.
+On phones the timer stays compact beside **Finish workout**; open **Options** to adjust the timer or discard the draft. During a workout, set **Rest seconds** (5–3600); completing a set starts that duration. Sound requires an interaction with the page, and vibration/wake lock depend on device and browser support. A visible notice also announces the timer ending. Backgrounded or locked mobile browsers may delay alerts until the app resumes.
 
 ## Run locally
 
@@ -77,7 +81,7 @@ gh repo edit naumansaeed0/settrack \
   --add-topic pwa --add-topic fitness --add-topic workout-tracker --add-topic offline-first
 ```
 
-Browser coverage includes desktop and phone offline logging, hash-route reloads, backup restoration, past-workout editing/deletion, unavailable storage and quota failures, workspace units, device-API fallbacks, icon dimensions/tap targets/dark mode, and a real waiting-service-worker upgrade. Device APIs are simulated for repeatable assertions; physical vibration, audible sound and OS screen-lock behavior still need a real-device check.
+Browser coverage includes desktop and phone offline logging, hash-route reloads, backup restoration, past-workout editing/deletion, unavailable storage and quota failures, workspace units, device-API fallbacks, icon dimensions/tap targets/dark mode, and a real waiting-service-worker upgrade. The additional usability coverage checks demo-to-personal onboarding, remembered workspaces and browser navigation, history filters, repeated sessions, one-tap weight entry without overwriting edits, confirmed draft cleanup, compact timer expansion, lift selection, and overflow at 320px/768px. Device APIs are simulated for repeatable assertions; physical vibration, audible sound and OS screen-lock behavior still need a real-device check.
 
 ## Implementation
 
