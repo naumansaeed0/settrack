@@ -1,9 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
-import type { Workspace } from './training.ts';
-export type Unit = 'kg' | 'lb';
-const factor = 2.2046226218;
-export const displayWeight = (kg: number, unit: Unit) => Math.round(kg * (unit === 'lb' ? factor : 1) * 100) / 100;
-export const storedWeight = (value: string, unit: Unit) => value.trim() === '' ? '' : String(Math.round(Number(value) / (unit === 'lb' ? factor : 1) * 1e6) / 1e6);
+import { displayWeight, storedWeight, type Unit, type Workspace } from './training.ts';
 const Units = createContext({ unit: 'kg' as Unit, setUnit: (_unit: Unit) => {}, preferenceError: '' });
 export function UnitProvider({ workspace, children }: { workspace: Workspace; children: ReactNode }) {
   const [unit, update] = useState<Unit>(() => { try { return localStorage.getItem(`settrack:${workspace}:unit`) === 'lb' ? 'lb' : 'kg'; } catch { return 'kg'; } });

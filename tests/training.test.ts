@@ -45,3 +45,12 @@ test('rest is derived from its deadline and stays at zero after expiry', () => {
   assert.equal(secondsLeft(90_000, 110_000), 0);
   assert.equal(secondsLeft(null, 110_000), 0);
 });
+
+
+test('unit conversions preserve canonical kilograms and empty entry fields', async () => {
+  const { displayWeight, storedWeight } = await import('../src/training.ts');
+  assert.equal(displayWeight(60, 'lb'), 132.28);
+  assert.ok(Math.abs(Number(storedWeight('132.28', 'lb')) - 60) < 0.005);
+  assert.equal(storedWeight('', 'lb'), '');
+  assert.equal(storedWeight('62.5', 'kg'), '62.5');
+});

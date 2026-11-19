@@ -121,3 +121,8 @@ export function demoJournal(now = Date.now()): Journal {
   });
   return { routines: [upper, lower], history, draft: null };
 }
+
+export type Unit = 'kg' | 'lb';
+const factor = 2.2046226218;
+export const displayWeight = (kg: number, unit: Unit) => Math.round(kg * (unit === 'lb' ? factor : 1) * 100) / 100;
+export const storedWeight = (value: string, unit: Unit) => value.trim() === '' ? '' : String(Math.round(Number(value) / (unit === 'lb' ? factor : 1) * 1e6) / 1e6);
