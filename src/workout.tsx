@@ -101,14 +101,28 @@ export function RoutineEditor({ initial, onSave, onClose }: { initial?: Routine;
   </Modal>;
 }
 
-export function WorkoutDetail({ workout, journal, onClose, onProgress }: { workout: Workout; journal: Journal; onClose: () => void; onProgress: (id: ExerciseId) => void }) {
+export function WorkoutDetail({ workout, journal, onClose, onProgress, onSave, onDelete }: { workout: Workout; journal: Journal; onClose: () => void; onProgress: (id: ExerciseId) => void; onSave: (workout: Workout) => void; onDelete: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [edited, setEdited] = useState(workout);
   const stats = workoutStats(workout);
   const records = recordsFor(workout, journal.history);
   return <Modal title={workout.name} onClose={onClose}>
+    {confirmDelete ? <><p>Delete this workout and all its sets? Export a backup first if you want to keep a copy.</p><div className="modal-actions"><button className="button secondary" onClick={() => setConfirmDelete(false)}>Keep workout</button><button className="button danger" onClick={onDelete}>Confirm delete workout</button></div></> : editing ? <form onSubmit={(event) => { event.preventDefault(); onSave({ ...edited, lifts: edited.lifts.filter(lift => lift.sets.length) }); setEditing(false); }}>
+      <label className="field">Workout name<input required maxLength={60} value={edited.name} onChange={e => setEdited({ ...edited, name: e.target.value })} /></label>
+      <label className="field">Finished at<input type="datetime-local" required value={new Date(edited.finishedAt - new Date(edited.finishedAt).getTimezoneOffset() * 60000).toISOString().slice(0,16)} onChange={e => { const end = +new Date(e.target.value); if (Number.isFinite(end)) setEdited({ ...edited, finishedAt: end, startedAt: end - (edited.finishedAt - edited.startedAt) }); }} /></label>
+      {edited.lifts.map(lift => <fieldset key={lift.exerciseId}><legend>{exercise(lift.exerciseId).name}</legend>{lift.sets.map((set, index) => <div className="edit-set" key={set.id}>
+        <label>Set {index + 1} kg<input type="number" inputMode="decimal" required min="0" max="1000" step="any" value={set.weight} onChange={e => setEdited({ ...edited, lifts: edited.lifts.map(l => l === lift ? { ...l, sets: l.sets.map(s => s === set ? { ...s, weight: e.target.value } : s) } : l) })} /></label>
+        <label>Reps<input type="number" inputMode="numeric" required min="1" max="200" value={set.reps} onChange={e => setEdited({ ...edited, lifts: edited.lifts.map(l => l === lift ? { ...l, sets: l.sets.map(s => s === set ? { ...s, reps: e.target.value } : s) } : l) })} /></label>
+        <button type="button" className="button secondary" aria-label={`Delete ${exercise(lift.exerciseId).name} set ${index + 1}`} onClick={() => { if (window.confirm('Delete this completed set? Changes take effect when you save the workout.')) setEdited({ ...edited, lifts: edited.lifts.map(l => l === lift ? { ...l, sets: l.sets.filter(s => s !== set) } : l) }); }}>Delete set</button>
+      </div>)}</fieldset>)}
+      <div className="modal-actions"><button type="button" className="button secondary" onClick={() => { setEdited(workout); setEditing(false); }}>Cancel changes</button><button className="button primary" disabled={!edited.name.trim() || !edited.lifts.some(l => l.sets.length) || edited.lifts.some(l => l.sets.some(s => !validSet(s))) || edited.startedAt < 0}>Save changes</button></div>
+    </form> : <>
     <p className="summary-date">{formatDate(workout.finishedAt, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
     <div className="summary-stats"><div><strong>{stats.sets}</strong><small>Sets</small></div><div><strong>{number(stats.volume)} kg</strong><small>Volume</small></div><div><strong>{duration(workout.startedAt, workout.finishedAt)}</strong><small>Duration</small></div></div>
     {records.map((record) => <div className="record" key={record.exerciseId}><Icon name="trophy" /><div><strong>New heaviest set</strong><p>{exercise(record.exerciseId).name} · {number(record.weight)} kg</p></div><button className="text-button" onClick={() => onProgress(record.exerciseId)}>View progress</button></div>)}
     <div className="summary-lifts">{workout.lifts.map((lift) => <div key={lift.exerciseId}><strong>{exercise(lift.exerciseId).name}</strong><span>{lift.sets.map((set) => `${set.weight} kg × ${set.reps}`).join(' · ')}</span></div>)}</div>
-    <div className="modal-actions"><button className="button primary" onClick={onClose}>Done</button></div>
+    <div className="modal-actions"><button className="button secondary" onClick={() => setEditing(true)}>Edit workout</button><button className="button danger" onClick={() => setConfirmDelete(true)}>Delete workout</button><button className="button primary" onClick={onClose}>Done</button></div>
+    </>}
   </Modal>;
 }

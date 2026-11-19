@@ -172,7 +172,7 @@ function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwi
       save({ ...journal, routines: editing === 'new' ? [...journal.routines, routine] : journal.routines.map((item) => item.id === routine.id ? routine : item) });
       setEditing(null);
     }} />}
-    {detail && journal && <WorkoutDetail workout={detail} journal={journal} onClose={() => setDetail(null)} onProgress={(id) => { setSelected(id); setDetail(null); navigate('progress'); }} />}
+    {detail && journal && <WorkoutDetail key={detail.id} onSave={(updated) => { save({ ...journal, history: journal.history.map(w => w.id === updated.id ? updated : w).sort((a,b) => b.finishedAt - a.finishedAt) }); setDetail(updated); }} onDelete={() => { save({ ...journal, history: journal.history.filter(w => w.id !== detail.id) }); setDetail(null); }} workout={detail} journal={journal} onClose={() => setDetail(null)} onProgress={(id) => { setSelected(id); setDetail(null); navigate('progress'); }} />}
   </div>;
 }
 
