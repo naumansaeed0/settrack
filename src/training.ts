@@ -146,7 +146,7 @@ export function filterWorkouts(history: Workout[], query = '', exerciseId: Exerc
   }).sort((a, b) => b.finishedAt - a.finishedAt);
 }
 
-export function usePreviousWeights(lift: Lift, previous: SetEntry[]): Lift {
+export function fillPreviousWeights(lift: Lift, previous: SetEntry[]): Lift {
   return { ...lift, sets: lift.sets.map((set, index) => {
     const last = previous[index];
     if (set.done || set.weight.trim() !== '' || !last || !validSet(last)) return set;

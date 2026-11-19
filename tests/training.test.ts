@@ -83,13 +83,13 @@ test('history search combines name, exercise and date filters without mutating h
 });
 
 test('filling previous weights keeps completed sets and user edits unchanged', async () => {
-  const { usePreviousWeights } = await import('../src/training.ts');
+  const { fillPreviousWeights } = await import('../src/training.ts');
   const previous = demoJournal().history[0].lifts[0].sets;
   const draft = startWorkout(demoJournal().routines[0]);
   const lift = draft.lifts[0];
   Object.assign(lift.sets[0], { weight: '62.5', done: true });
   Object.assign(lift.sets[1], { weight: '55', reps: '12' });
-  const result = usePreviousWeights(lift, previous);
+  const result = fillPreviousWeights(lift, previous);
   assert.equal(result.sets[0].done, true);
   assert.equal(result.sets[0].weight, '62.5');
   assert.equal(result.sets[1].weight, '55');

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useUnits } from './units.tsx';
-import { appendSet, usePreviousWeights, exercise, library, makeSet, previousSets, secondsLeft, validSet, workoutStats, recordsFor,
+import { appendSet, fillPreviousWeights, exercise, library, makeSet, previousSets, secondsLeft, validSet, workoutStats, recordsFor,
   type Workspace, type Draft, type ExerciseId, type Journal, type Routine, type SetEntry, type Workout } from './training.ts';
 import { duration, Empty, formatDate, Icon, Modal, number, PageHeading } from './ui.tsx';
 
@@ -34,7 +34,7 @@ export function WorkoutEditor({ draft, history, change, finish, discard, workspa
   }
 
   return <>
-    <PageHeading title={draft.name} subtitle={`${count} of ${total} sets completed · ${duration(draft.startedAt, now)} elapsed`} action={<button className="button secondary" onClick={() => { setName(draft.name); setRenaming(true); }}>Rename workout</button>} />
+    <PageHeading title={draft.name} subtitle={`${count} of ${total} sets completed · ${duration(draft.startedAt, now)} elapsed`} action={<button className="button secondary" aria-label="Rename workout" onClick={() => { setName(draft.name); setRenaming(true); }}>Rename</button>} />
     <div className="workout-completion" role="progressbar" aria-label="Workout completion" aria-valuemin={0} aria-valuemax={Math.max(1, total)} aria-valuenow={count}><span style={{ width: `${total ? count / total * 100 : 0}%` }} /></div>
     <div className={`session-grid ${timerExpanded ? 'rest-expanded' : ''}`}>
       <div className="lift-list">
@@ -45,7 +45,7 @@ export function WorkoutEditor({ draft, history, change, finish, discard, workspa
           const latest = previous.at(-1);
           return <section className="panel lift" key={lift.exerciseId} aria-label={info.name}>
             <header className="lift-heading"><span className="row-icon"><Icon name="weights" /></span><div><h2>{info.name}</h2><p>{info.group}{latest && ` · Last session ${weight(latest.weight)} ${unit} × ${latest.reps}`}</p></div></header>
-            {previous.length > 0 && <div className="previous-tools"><button className="text-button" disabled={!lift.sets.some((set, index) => !set.done && set.weight.trim() === '' && previous[index] && validSet(previous[index]))} onClick={() => change({ ...draft, lifts: draft.lifts.map(item => item === lift ? usePreviousWeights(lift, previous) : item) })}>Use last weights</button><span>Fills empty weights. Keeps your edits.</span></div>}
+            {previous.length > 0 && <div className="previous-tools"><button className="text-button" disabled={!lift.sets.some((set, index) => !set.done && set.weight.trim() === '' && previous[index] && validSet(previous[index]))} onClick={() => change({ ...draft, lifts: draft.lifts.map(item => item === lift ? fillPreviousWeights(lift, previous) : item) })}>Use last weights</button><span>Fills empty weights. Keeps your edits.</span></div>}
             <div className="set-grid set-labels" aria-hidden="true"><span>Set</span><span>Previous</span><span>{unit}</span><span>Reps</span><span>Done</span></div>
             {lift.sets.map((set, index) => <div className={`set-grid set-row ${set.done ? 'done' : ''}`} key={set.id}>
               <span>{index + 1}</span><span className="previous">{previous[index] ? `${weight(previous[index].weight)} × ${previous[index].reps}` : '—'}</span>
