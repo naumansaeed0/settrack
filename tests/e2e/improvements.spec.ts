@@ -104,3 +104,28 @@ test('rest controls stay accessible on desktop and compact on phones', async ({ 
   expect((await panel.boundingBox())!.height).toBeLessThan(100);
   await expect(page.getByRole('button', { name: 'Finish workout', exact: true })).toBeVisible();
 });
+
+test('overview lift selection carries through to detailed progress', async ({ page }) => {
+  await page.goto('./#dashboard');
+  await page.getByRole('combobox', { name: 'Overview exercise', exact: true }).selectOption('squat');
+  await expect(page.getByRole('heading', { name: 'Back Squat', exact: true })).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Back Squat, heaviest set by session in kg', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'View progress', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Lift progress', exact: true })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Exercise', exact: true })).toHaveValue('squat');
+});
+
+test('narrow phone and tablet screens avoid horizontal scrolling', async ({ page }, info) => {
+  const width = info.project.name === 'phone' ? 320 : 768;
+  await page.setViewportSize({ width, height: 900 });
+  await page.goto('./#dashboard');
+  await page.getByRole('heading', { name: 'Training log' }).waitFor();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+  await page.getByRole('button', { name: 'Start workout', exact: true }).click();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+  if (width === 320) {
+    await page.getByRole('button', { name: 'Show rest controls', exact: true }).click();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+  }
+  await page.screenshot({ path: `test-results/responsive-${width}.png`, fullPage: true });
+});

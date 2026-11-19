@@ -82,6 +82,7 @@ function JournalApp({ workspace, openSwitcher, usePersonal }: { workspace: Works
         version.current = saved?.revision ?? 0;
         const next = saved?.journal ?? (workspace === 'demo' ? demoJournal() : emptyJournal());
         setJournal(next);
+        setSelected(next.history[0]?.lifts[0]?.exerciseId ?? next.routines[0]?.targets[0]?.exerciseId ?? 'bench');
         if (!next.draft && routePage() === 'workout') { setPage('dashboard'); location.hash = 'dashboard'; }
       }
     }).catch(() => { if (active) setStorageError('IndexedDB is unavailable. Private browsing, blocked site storage or a full device may prevent saving. Allow site storage, free space and reload.'); });
@@ -163,7 +164,7 @@ function JournalApp({ workspace, openSwitcher, usePersonal }: { workspace: Works
         {storageError && <p className="error" role="alert">{storageError} <button className="text-button" onClick={() => location.reload()}>Reload</button></p>}
         {!journal && !storageError && <p>Opening your journal…</p>}
         <div inert={!!storageError}>
-          {journal && page === 'dashboard' && <Overview workspace={workspace} usePersonal={usePersonal} canSwitch={status !== 'saving'} addTemplate={(routine) => { save({ ...journal, routines: [...journal.routines, { ...routine, id: crypto.randomUUID(), targets: routine.targets.map(target => ({ ...target })) }] }); navigate('routines'); }} journal={journal} start={start} open={setDetail} navigate={navigate} newRoutine={() => setEditing('new')} />}
+          {journal && page === 'dashboard' && <Overview onProgress={id => { setSelected(id); navigate('progress'); }} workspace={workspace} usePersonal={usePersonal} canSwitch={status !== 'saving'} addTemplate={(routine) => { save({ ...journal, routines: [...journal.routines, { ...routine, id: crypto.randomUUID(), targets: routine.targets.map(target => ({ ...target })) }] }); navigate('routines'); }} journal={journal} start={start} open={setDetail} navigate={navigate} newRoutine={() => setEditing('new')} />}
           {journal && page === 'routines' && <><PageHeading title="Routines" subtitle="Build a workout you can return to." action={newRoutine} />
             {journal.routines.length ? <div className="routine-cards">{journal.routines.map((routine) => <article className="panel routine-card" key={routine.id}><span className="row-icon"><Icon name="weights" /></span><h2>{routine.name}</h2><p>{routine.targets.length} exercises · {routine.targets.reduce((sum, item) => sum + item.sets, 0)} target sets</p><ul>{routine.targets.map((target) => <li key={target.exerciseId}>{exercise(target.exerciseId).name}<span>{target.sets} × {target.reps}</span></li>)}</ul><div className="routine-actions"><button className="button primary" onClick={() => start(routine)}>{journal.draft ? 'Resume workout' : 'Start workout'}</button><button className="button secondary" onClick={() => setEditing(routine)} aria-label={`Edit ${routine.name}`}>Edit</button></div></article>)}</div>
               : <section className="panel"><Empty title="No routines yet">Create a routine with the exercises you train most often.</Empty></section>}</>}
@@ -202,17 +203,18 @@ function JournalApp({ workspace, openSwitcher, usePersonal }: { workspace: Works
   </div>;
 }
 
-function Overview({ journal, start, open, navigate, newRoutine, workspace, usePersonal, canSwitch, addTemplate }: {
-  workspace: Workspace; usePersonal: () => void; canSwitch: boolean; addTemplate: (routine: Routine) => void;
+function Overview({ journal, start, open, navigate, newRoutine, workspace, usePersonal, canSwitch, addTemplate, onProgress }: {
+  workspace: Workspace; onProgress: (id: ExerciseId) => void; usePersonal: () => void; canSwitch: boolean; addTemplate: (routine: Routine) => void;
   journal: Journal; start: (routine?: Routine) => void; open: (workout: Workout) => void; navigate: (page: Page) => void; newRoutine: () => void;
 }) {
   const { unit, weight } = useUnits();
+  const [chartExercise, setChartExercise] = useState<ExerciseId>(() => journal.history[0]?.lifts[0]?.exerciseId ?? journal.routines[0]?.targets[0]?.exerciseId ?? 'bench');
   const featured = journal.routines[0];
   const recent = journal.history[0];
   const month = Date.now() - 30 * 86400000;
   const lastMonth = journal.history.filter((workout) => workout.finishedAt >= month);
   const volume = lastMonth.reduce((sum, workout) => sum + workoutStats(workout).volume, 0);
-  const points = progressFor(journal.history, 'bench');
+  const points = progressFor(journal.history, chartExercise);
   const current = points.at(-1)?.weight;
   return <>
     <PageHeading title="Training log" subtitle={formatDate(Date.now(), { weekday: 'long', month: 'long', day: 'numeric' })} action={<button className="button secondary blank" onClick={() => start()}><Icon name="plus" size={18} /> {journal.draft ? 'Resume workout' : 'Blank workout'}</button>} />
@@ -230,9 +232,10 @@ function Overview({ journal, start, open, navigate, newRoutine, workspace, usePe
       <Metric icon="timer" label="Last session" value={recent ? duration(recent.startedAt, recent.finishedAt) : '—'} note={recent ? `${recent.name} · ${formatDate(recent.finishedAt)}` : 'Finish a workout to begin'} />
     </div>
     <div className="overview-grid">
-      <section className="panel dashboard-chart"><div className="section-heading"><div><h2>Bench Press</h2><p>Heaviest set by session</p></div><button className="text-button" onClick={() => navigate('progress')}>View progress <Icon name="chevron" size={15} /></button></div>
+      <section className="panel dashboard-chart"><div className="section-heading"><div><h2>{exercise(chartExercise).name}</h2><p>Heaviest set by session</p></div><button className="text-button" onClick={() => onProgress(chartExercise)}>View progress <Icon name="chevron" size={15} /></button></div>
         {current !== undefined && <div className="chart-value">{number(weight(current))} <small>{unit}</small>{points.length > 1 && points.at(-2)!.weight !== current && <span>{current > points.at(-2)!.weight ? '+' : '−'}{number(weight(Math.abs(current - points.at(-2)!.weight)))} {unit}</span>}</div>}
-        <Chart points={points} id="bench" />
+        <label className="field chart-select"><span className="sr-only">Overview exercise</span><select value={chartExercise} onChange={event => setChartExercise(event.target.value as ExerciseId)}>{library.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+        <Chart points={points} id={chartExercise} />
       </section>
       <section className="panel recent"><div className="section-heading"><h2>Recent workouts</h2><button className="text-button" onClick={() => navigate('history')}>View all <Icon name="chevron" size={15} /></button></div>
         {journal.history.length ? <WorkoutRows workouts={journal.history.slice(0, 4)} open={open} /> : <Empty title="No workouts logged">Your finished workouts will appear here.</Empty>}
