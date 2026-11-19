@@ -250,3 +250,14 @@ button, .icon-button { min-width: 44px; }
   .history-row, .picker-row { background: transparent; }
   .chart text { fill: #b5bbc4; }
 }
+@media (max-width: 700px) {
+  .sidebar nav button, .sidebar .workspace { min-height: 44px; }
+  .topbar { gap: 8px; flex-wrap: wrap; padding-block: 4px; }
+}
+@media (prefers-color-scheme: dark) {
+  .metric > div, .set-row .previous { color: var(--muted); }
+  .set-row.done, .summary-stats div { background: #2b3a34; }
+  .chart-value span { background: #254032; }
+  .history-row:hover, .picker-row:hover { background: #303949; }
+  .discard { color: #ffb4ab; }
+}
