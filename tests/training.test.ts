@@ -131,3 +131,12 @@ test('rolling day filters include local midnight across a DST boundary',async()=
  const {filterWorkouts}=await import('../src/training.ts');const original=process.env.TZ;process.env.TZ='America/New_York';
  try{const now=+new Date(2026,10,5,0,1);const source=demoJournal(now).history[0];const first={...source,id:'included',startedAt:+new Date(2026,9,30,0,0)-1000,finishedAt:+new Date(2026,9,30,0,0)};const older={...source,id:'excluded',startedAt:+new Date(2026,9,29,23,59)-1000,finishedAt:+new Date(2026,9,29,23,59)};assert.deepEqual(filterWorkouts([older,first],'','',7,now).map(w=>w.id),['included']);}finally{if(original===undefined)delete process.env.TZ;else process.env.TZ=original;}
 });
+
+test('current bests recompute when the PR workout is deleted',async()=>{
+ const {currentRecords,trainingSummary}=await import('../src/training.ts');const journal=demoJournal();const draft=startWorkout(journal.routines[0]);Object.assign(draft.lifts[0].sets[0],{weight:'100',reps:'5',done:true});const record=finishWorkout(draft)!;
+ assert.equal(currentRecords([record,...journal.history]).find(r=>r.exerciseId==='bench')!.value,100);assert.equal(currentRecords(journal.history).find(r=>r.exerciseId==='bench')!.value,60);assert.ok(trainingSummary(journal.history).streak>=1);
+});
+
+test('steppers clamp canonical weight and rep/duration ranges',async()=>{
+ const {stepSet}=await import('../src/training.ts');const set={id:'s',weight:'1000',reps:'200',seconds:'86400',done:true};assert.equal(stepSet(set,'weight',5,'lb').weight,'1000');assert.equal(stepSet(set,'reps',1).reps,'200');assert.equal(stepSet(set,'seconds',5).seconds,'86400');assert.equal(stepSet({...set,weight:'0'},'weight',-5).weight,'0');
+});

@@ -45,6 +45,7 @@ export function startWorkout(routine?: Routine, startedAt = Date.now()): Draft {
 }
 
 export function validSet(set: SetEntry, type: ExerciseType = 'weight') {
+  if (type !== 'weight' && set.weight.trim() !== '' && Number(set.weight) !== 0) return false;
   if (type === 'timed') return !!set.seconds?.trim() && Number.isInteger(Number(set.seconds)) && Number(set.seconds) > 0 && Number(set.seconds) <= 86400;
   if (type === 'bodyweight') return Number.isInteger(Number(set.reps)) && Number(set.reps) >= 1 && Number(set.reps) <= 200;
   const weight = Number(set.weight);
@@ -62,7 +63,7 @@ export function finishWorkout(draft: Draft, finishedAt = Date.now()): Workout | 
 }
 
 export function workoutStats(workout: Pick<Workout, 'lifts'>) {
-  const sets = workout.lifts.flatMap((lift) => lift.sets).filter((set) => set.done);
+  const sets = workout.lifts.flatMap(lift => lift.sets.filter(set => set.done && validSet(set,exerciseType(lift))));
   return { sets: sets.length, volume: sets.reduce((sum, set) => sum + Number(set.weight || 0) * Number(set.reps || 0), 0) };
 }
 
@@ -182,4 +183,20 @@ export function migrateJournal(journal: Journal): Journal {
   next.routines.forEach(r => r.targets.forEach(t => { t.type ??= exerciseType(t); }));
   [...next.history, ...(next.draft ? [next.draft] : [])].forEach(w => w.lifts.forEach(l => { l.type ??= exerciseType(l); }));
   return next;
+}
+
+export function currentRecords(history: Workout[]) {
+ return library.flatMap(item=>{const metric=progressMetric(history,item.id);const points=progressFor(history,item.id,metric);return points.length?[{exerciseId:item.id,metric,value:Math.max(...points.map(p=>p.weight))}]:[];});
+}
+export function trainingSummary(history: Workout[], now = Date.now()) {
+ const weekStart=localDayStart(now,6);const recent=history.filter(w=>w.finishedAt>=weekStart&&w.finishedAt<=now);
+ const monday=(time:number)=>{const d=new Date(time);d.setDate(d.getDate()-((d.getDay()+6)%7));d.setHours(0,0,0,0);return +d;};
+ const weeks=new Set(history.map(w=>monday(w.finishedAt)));let cursor=monday(now);if(!weeks.has(cursor)){const d=new Date(cursor);d.setDate(d.getDate()-7);cursor=+d;}let streak=0;
+ while(weeks.has(cursor)){streak++;const d=new Date(cursor);d.setDate(d.getDate()-7);cursor=+d;}
+ return {sessions:recent.length,volume:recent.reduce((sum,w)=>sum+workoutStats(w).volume,0),sets:recent.reduce((sum,w)=>sum+workoutStats(w).sets,0),streak,records:currentRecords(history)};
+}
+
+export function stepSet(set: SetEntry, field: 'weight'|'reps'|'seconds', delta: number, unit: Unit = 'kg'): Partial<SetEntry> {
+ if(field==='weight') { const shown=set.enteredWeight?.unit===unit?Number(set.enteredWeight.value):displayWeight(Number(set.weight||0),unit);const maximum=unit==='lb'?1000*factor:1000;const next=Math.min(maximum,Math.max(0,(Number.isFinite(shown)?shown:0)+delta));return {weight:String(Math.min(1000,Number(storedWeight(String(next),unit)))),enteredWeight:{unit,value:String(Math.round(next*100)/100)},done:false}; }
+ return {[field]:String(Math.min(field==='seconds'?86400:200,Math.max(1,Number(set[field]||0)+delta))),done:false};
 }
