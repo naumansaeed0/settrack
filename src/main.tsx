@@ -29,7 +29,13 @@ function initialWorkspace(): Workspace {
 function App() {
   const [workspace, setWorkspace] = useState(initialWorkspace);
   const [switcher, setSwitcher] = useState(false);
+  useEffect(() => {
+    const sync = () => setWorkspace(initialWorkspace());
+    window.addEventListener('popstate', sync);
+    return () => window.removeEventListener('popstate', sync);
+  }, []);
   function switchWorkspace(option: Workspace) {
+    if (option === workspace) { setSwitcher(false); return; }
     const url = new URL(location.href);
     url.searchParams.set('workspace', option);
     url.hash = 'dashboard';

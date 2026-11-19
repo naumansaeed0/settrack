@@ -129,3 +129,19 @@ test('narrow phone and tablet screens avoid horizontal scrolling', async ({ page
   }
   await page.screenshot({ path: `test-results/responsive-${width}.png`, fullPage: true });
 });
+
+test('workspace selection stays consistent with browser back and forward navigation', async ({ page }) => {
+  await page.goto('./?workspace=demo#dashboard');
+  await page.getByRole('button', { name: 'History', exact: true }).click();
+  await page.getByRole('button', { name: /^Demo journal/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: /^Demo journal/ }).click();
+  await expect(page.getByRole('heading', { name: 'Workout history' })).toBeVisible();
+  await expect(page).toHaveURL(/#history$/);
+  await page.getByRole('button', { name: /^Demo journal/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: /^My journal/ }).click();
+  await expect(page.getByRole('heading', { name: 'Your first workout' })).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole('region', { name: 'About the demo journal' })).toBeVisible();
+  await page.goForward();
+  await expect(page.getByRole('heading', { name: 'Your first workout' })).toBeVisible();
+});
