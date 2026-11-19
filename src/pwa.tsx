@@ -8,14 +8,14 @@ export function PwaUpdate({ safeToReload }: { safeToReload: boolean }) {
     if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return;
     let disposed = false;
     let registration: ServiceWorkerRegistration | undefined;
-    const controllerChanged = () => { if (accepted.current) location.reload(); };
+    const controllerChanged = () => { if (accepted.current) location.reload(); else setWaiting(null); };
     const refresh = () => { if (document.visibilityState === 'visible') void registration?.update().catch(() => undefined); };
     navigator.serviceWorker.addEventListener('controllerchange', controllerChanged);
     document.addEventListener('visibilitychange', refresh);
     void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`, { scope: import.meta.env.BASE_URL, updateViaCache: 'none' }).then(reg => {
       if (disposed) return;
       registration = reg;
-      const check = () => { if (!disposed && reg.waiting) setWaiting(reg.waiting); };
+      const check = () => { if (!disposed && navigator.serviceWorker.controller) setWaiting(reg.waiting); };
       check();
       reg.addEventListener('updatefound', () => {
         reg.installing?.addEventListener('statechange', check);
