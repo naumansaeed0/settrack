@@ -23,7 +23,9 @@ export function WorkoutEditor({ draft, history, change, finish, discard, workspa
   const timer = `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')}`;
 
   function updateSet(liftId: ExerciseId, id: string, patch: Partial<SetEntry>, startRest = false) {
-    change({ ...draft, restUntil: startRest ? Date.now() + durationSeconds * 1000 : draft.restUntil, lifts: draft.lifts.map((lift) =>
+    const restStart = Date.now();
+    if (startRest) setNow(restStart);
+    change({ ...draft, restUntil: startRest ? restStart + durationSeconds * 1000 : draft.restUntil, lifts: draft.lifts.map((lift) =>
       lift.exerciseId === liftId ? { ...lift, sets: lift.sets.map((set) => set.id === id ? { ...set, ...patch } : set) } : lift) });
   }
 
