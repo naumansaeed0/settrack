@@ -3,3 +3,25 @@ dist/
 test-results/
 playwright-report/
 .notes/
+
+# Local secrets and environment overrides
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.local
+
+# Editor, OS and temporary files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.tmp
+*~
+*.log
+
+# Additional test output
+coverage/
+blob-report/

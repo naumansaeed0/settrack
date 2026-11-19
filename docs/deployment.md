@@ -7,7 +7,7 @@
 | Branch | Contains | Updated by |
 |---|---|---|
 | `main` | React/TypeScript source, tests, documentation and screenshots | Normal development commits and feature merges |
-| `gh-pages` | Production HTML, hashed assets, icons, fonts and service worker | `npm run deploy` |
+| `gh-pages` | Production HTML, hashed assets, icons, fonts, licenses and service worker | `npm run deploy` |
 
 These branches represent different artifacts. Do not merge `gh-pages` into `main`, or merge source files into `gh-pages`. A deployment publishes a fresh build from a source commit. Feature branches should merge into `main` after review and verification; there are currently no outstanding feature branches.
 
@@ -21,7 +21,7 @@ Vite's base is **`/settrack/`**. Commit every change first:
 npm run deploy
 ```
 
-The `predeploy` hook rejects a dirty working tree, runs `npm test`, then builds. Failure stops deployment. The deploy command publishes only `dist/` to `gh-pages`, including `.nojekyll`, and removes legacy source/workflow files from that branch. GitHub Pages must use **Deploy from branch → gh-pages → / (root)**. No GitHub Actions workflow or billing setup is used.
+The `predeploy` hook rejects a dirty working tree, runs `npm test`, then builds. Failure stops deployment. The deploy command publishes only `dist/` to `gh-pages`, including `.nojekyll`, and removes legacy source/workflow files from that branch. GitHub Pages must use **Deploy from branch → gh-pages → / (root)**. The owner’s GitHub Actions account is locked, so no repository Actions workflow or billing setup is used. GitHub may still list its own generated `pages-build-deployment` workflow for branch-based Pages; that is the successful Pages publishing mechanism, not a source workflow to remove.
 
 Repository About fields require account permissions beyond code publishing. With an authorized account:
 

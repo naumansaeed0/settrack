@@ -97,12 +97,19 @@ Open **http://localhost:4173/settrack/**. To run browser checks, install Chromiu
 
 ## Publish without GitHub Actions
 
+GitHub Actions is locked on the owner’s account. Publishing uses branch-based Pages and does not require enabling Actions or setting up billing.
+
 Commit your changes, then run `npm run deploy`. The command requires a clean working tree, runs the unit tests, builds the app and publishes `dist/` to **`gh-pages`**.
 
 **`main` is source. `gh-pages` is the published build.** Keep both: deployment synchronizes them by building and publishing, rather than merging their different contents. [Deployment and branch guide →](docs/deployment.md)
 
+## License
+
+SetTrack’s code, documentation and project-authored SVG artwork are available under the [MIT License](LICENSE). Third-party software and fonts retain their own licenses; complete bundled notices are in [Third-party notices](public/THIRD_PARTY_NOTICES.txt). See the [licensing review](docs/licensing.md) for attribution and scope.
+
 ## Go deeper
 
+- [Documentation index](docs/README.md) — a guide to the project documentation.
 - [Data, backups and CSV formats](docs/data-guide.md) — storage guarantees, restore safety, file formats and sharing.
 - [Architecture and maintenance](docs/architecture.md) — source map, naming conventions, migrations and verification.
 - [Deployment and branches](docs/deployment.md) — manual publishing, release checks and repository settings.
