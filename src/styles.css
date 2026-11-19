@@ -219,3 +219,20 @@ dialog p { line-height: 1.5; color: var(--muted); }
 .edit-set label { flex: 1; min-width: 80px; }
 .edit-set input { display: block; width: 100%; min-height: 44px; }
 fieldset { border: 1px solid var(--line); border-radius: 8px; margin: 16px 0; }
+
+button, .button, .text-button, .icon-button, input, select, summary { min-height: 44px; }
+button, .icon-button { min-width: 44px; }
+.rest-setting { display: grid; gap: 4px; font-size: .82rem; margin: 10px 0; }
+.rest-setting input { width: 100%; max-width: 180px; padding: 6px; }
+.rest-notice { padding: 12px; margin-bottom: 12px; background: var(--blue-pale); color: var(--blue); border-radius: 8px; }
+@media (max-width: 700px) {
+  .session-grid { padding-bottom: 240px; }
+  .timer-panel { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; width: 100%; top: auto; }
+  .timer-content, .rest-setting, .timer-actions, .session-actions { min-width: 0; margin: 0; }
+  .timer-actions { justify-self: stretch; }
+  .timer-actions .button, .session-actions .button, .session-actions .text-button { min-height: 44px; }
+  .rest-setting input { max-width: 100%; }
+  .session-actions { grid-column: 2; grid-row: 2; }
+  .set-row input, .set-row .icon-button { min-height: 44px; }
+  footer { flex-wrap: wrap; gap: 12px; }
+}
