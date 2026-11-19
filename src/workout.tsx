@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useUnits } from './units.tsx';
-import { appendSet, fillPreviousWeights, exercise, library, makeSet, previousSets, secondsLeft, validSet, workoutStats, recordsFor,
+import { incompleteSets, appendSet, fillPreviousWeights, exercise, library, makeSet, previousSets, secondsLeft, validSet, workoutStats, recordsFor,
   type Workspace, type Draft, type ExerciseId, type Journal, type Routine, type SetEntry, type Workout } from './training.ts';
 import { duration, Empty, formatDate, Icon, Modal, number, PageHeading } from './ui.tsx';
 
@@ -66,7 +66,7 @@ export function WorkoutEditor({ draft, history, change, finish, discard, workspa
           <div className="timer-actions"><button className="button secondary" onClick={() => { const start = Date.now(); setNow(start); change({ ...draft, restUntil: start + durationSeconds * 1000 }); }}>{remaining ? 'Restart' : `Start ${durationSeconds}s`}</button><button className="button secondary" disabled={!remaining} onClick={() => change({ ...draft, restUntil: null })}>Skip</button></div>
           <button className="text-button discard" onClick={() => setConfirm('discard')}>Discard draft</button>
         </div>
-        <div className="session-actions"><button className="button primary" disabled={!count} onClick={() => count === total ? finish() : setConfirm('finish')}>Finish workout</button></div>
+        <div className="session-actions"><button className="button primary" disabled={!count} onClick={() => incompleteSets(draft).length || workspace === 'demo' ? setConfirm('finish') : finish()}>Finish workout</button></div>
       </aside>
     </div>
     {renaming && <Modal title="Rename workout" onClose={() => setRenaming(false)}><form onSubmit={event => { event.preventDefault(); if (!name.trim()) return; change({ ...draft, name: name.trim() }); setRenaming(false); }}><label className="field">Workout name<input autoFocus required maxLength={60} value={name} onChange={e => setName(e.target.value)} /></label><div className="modal-actions"><button type="button" className="button secondary" onClick={() => setRenaming(false)}>Cancel</button><button className="button primary" disabled={!name.trim()}>Save name</button></div></form></Modal>}
@@ -75,8 +75,8 @@ export function WorkoutEditor({ draft, history, change, finish, discard, workspa
       change({ ...draft, lifts: [...draft.lifts, { exerciseId: id, sets: [makeSet()] }] }); setAdding(false);
     }} />}
     {confirm && <Modal title={confirm === 'finish' ? 'Finish workout?' : 'Discard this draft?'} onClose={() => setConfirm(null)}>
-      <p>{confirm === 'finish' ? `Your ${count} completed ${count === 1 ? 'set will' : 'sets will'} be saved to History.` : 'The sets in this draft will be cleared.'}</p>
-      <div className="modal-actions"><button className="button secondary" onClick={() => setConfirm(null)}>Keep logging</button><button className={`button ${confirm === 'finish' ? 'primary' : 'danger'}`} onClick={confirm === 'finish' ? finish : discard}>{confirm === 'finish' ? 'Save workout' : 'Discard draft'}</button></div>
+      <p>{confirm === 'finish' ? `${incompleteSets(draft).length} sets are incomplete and won't be saved. Go back to fix them, or finish anyway.${workspace === 'demo' ? ' You are in the Demo journal. This workout will be saved as demo data.' : ''}` : 'The sets in this draft will be cleared.'}</p>
+      <div className="modal-actions"><button className="button secondary" onClick={() => setConfirm(null)}>Go back and fix</button><button className={`button ${confirm === 'finish' ? 'primary' : 'danger'}`} onClick={confirm === 'finish' ? finish : discard}>{confirm === 'finish' ? 'Save workout' : 'Discard draft'}</button></div>
     </Modal>}
   </>;
 }

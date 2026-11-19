@@ -108,3 +108,13 @@ test('adding a set reuses valid entries but never copies completion or set ident
   assert.deepEqual({ weight: next.sets[3].weight, reps: next.sets[3].reps, done: next.sets[3].done }, { weight: '60', reps: '8', done: false });
   assert.notEqual(next.sets[3].id, lift.sets[2].id);
 });
+
+test('finish explicitly reports unchecked and invalid completed sets', async () => {
+  const { incompleteSets } = await import('../src/training.ts');
+  const draft = startWorkout(demoJournal().routines[0]);
+  Object.assign(draft.lifts[0].sets[0], { weight: '', reps: '0', done: true });
+  assert.equal(incompleteSets(draft).length, 12);
+  Object.assign(draft.lifts[0].sets[1], { weight: '60', reps: '8', done: true });
+  assert.equal(incompleteSets(draft).length, 11);
+  assert.equal(finishWorkout(draft)!.lifts[0].sets.length, 1);
+});

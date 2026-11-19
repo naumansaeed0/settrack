@@ -158,3 +158,5 @@ export function appendSet(lift: Lift): Lift {
   const last = [...lift.sets].reverse().find(validSet);
   return { ...lift, sets: [...lift.sets, { ...makeSet(last?.reps ?? lift.sets.at(-1)?.reps), weight: last?.weight ?? '' }] };
 }
+
+export const incompleteSets = (draft: Draft) => draft.lifts.flatMap(lift => lift.sets).filter(set => !set.done || !validSet(set));
