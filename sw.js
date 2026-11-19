@@ -1,11 +1,15 @@
-const version = "fbf5644f3cd1";
-const files = ["/settrack/assets/hero-tip2G_vI.webp","/settrack/assets/index-BcsM6yCz.js","/settrack/assets/index-DPxBTYwD.css","/settrack/index.html","/settrack/mark.svg"];
+const version = "c74f61e6346a";
+const files = ["/settrack/assets/hero-tip2G_vI.webp","/settrack/assets/index-CztvxsaU.css","/settrack/assets/index-D_iHp1Vd.js","/settrack/icon-192.png","/settrack/icon-512.png","/settrack/index.html","/settrack/manifest.webmanifest","/settrack/mark.svg"];
 const prefix = `settrack-shell:${self.registration.scope}:`;
 const cacheName = `${prefix}${version}`;
 const shell = new URL('index.html', self.registration.scope).href;
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(cacheName).then((cache) => cache.addAll(files)));
+  event.waitUntil(caches.open(cacheName).then((cache) => cache.addAll(files.map((file) => new Request(new URL(file, self.registration.scope), { cache: 'reload' })))));
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
