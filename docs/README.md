@@ -12,4 +12,4 @@
 
 The [screenshots](screenshots/) and [cover artwork](cover.svg) are referenced by the project README. Generate fresh screenshots with `npm run screenshots` against the production preview.
 
-Raw Lighthouse JSON and summaries are local verification output under `.notes/`, which is ignored. No raw Lighthouse reports are tracked, so there is nothing to move into a public report folder. SetTrack does not have the plant project's design-system guide, data-review document or Round 1/2 reports; those files were not invented or copied into this repository.
+Raw Lighthouse JSON and summaries are local verification output under `.notes/`, which is ignored. No raw Lighthouse reports are tracked, so there is nothing to move into a public report folder.

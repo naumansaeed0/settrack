@@ -49,4 +49,3 @@ This is an attribution review of shipped components and directly used tools, not
 - Removed the unused `src/hero.webp`. It had no remaining code or documentation references and no accompanying source/license attribution; its provenance was unclear. It is no longer part of the current source tree or published site. Published Git history is preserved.
 - All four retained screenshots are referenced by the README. The cover, app marks and icons are local project assets. No remote image or font CDN is used by the app.
 - No unclear license was found among the retained bundled packages or fonts reviewed above.
-- Plant descriptions, cited botanical sources and plant guides are not present in SetTrack. That passage-comparison request does not apply here; no claim of a plagiarism audit against external training sources is made, and no such passages were rewritten.

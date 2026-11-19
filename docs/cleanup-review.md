@@ -10,7 +10,7 @@ Reviewed 19 November 2026. Cleanup uses new conventional commits; published hist
 - `dist/`, `node_modules/`, temporary verification notes and Playwright output were already untracked and ignored.
 - Expanded `.gitignore` to cover local environment files, editor/OS files, logs, temporary files, coverage output and Playwright blob reports. Example environment files can still be committed.
 - Retained the four README screenshots, cover artwork, source, tests, fixtures, lockfile, build/deploy scripts and font licenses because they are used or referenced.
-- Added a [documentation index](README.md). No raw Lighthouse JSON reports are tracked; audit output stays ignored under `.notes/`. The plant project's Round 1/2 reports and guides do not exist in SetTrack.
+- Added a [documentation index](README.md). No raw Lighthouse JSON reports are tracked; audit output stays ignored under `.notes/`.
 - Added the project MIT license, npm license metadata and full notices for shipped third-party components.
 
 ## Branches and published files
