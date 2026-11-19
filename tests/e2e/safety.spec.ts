@@ -12,7 +12,7 @@ test('finishing warns about invalid completed sets and moving a demo draft prese
  await expect(page.getByRole('button',{name:/^My journal/})).toBeVisible();await page.getByRole('button',{name:'Workout',exact:true}).click();await expect(bench.getByRole('spinbutton',{name:'Bench Press set 1 weight in kg'})).toHaveValue('60');
 });
 test('restoring takes a pre-import snapshot and undo restores the whole journal',async({page})=>{
- await page.goto('./');await page.getByRole('heading',{name:'Training log'}).waitFor();
+ await page.goto('./');await page.getByRole('heading',{name:'Training overview'}).waitFor();
  await page.getByLabel('Restore from backup',{exact:true}).setInputFiles({name:'backup.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(empty))});
  await page.getByRole('button',{name:'Replace journal',exact:true}).click();await expect(page.getByRole('heading',{name:'Your first workout'})).toBeVisible();
  await page.getByRole('button',{name:'Undo import',exact:true}).click();await expect(page.getByRole('heading',{name:'Upper Body A',exact:true})).toBeVisible();

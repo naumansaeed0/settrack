@@ -4,7 +4,7 @@ test('demo visitors can start a clean personal journal and keep that workspace o
   await page.goto('./#dashboard');
   await expect(page.getByRole('region', { name: 'About the demo journal' })).toBeVisible();
   await page.getByRole('button', { name: 'Use my journal', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Your first workout' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your first workout', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Use Upper Body A', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Upper Body A', exact: true })).toBeVisible();
   await expect(page.getByRole('status')).toHaveText('Stored on this device');
@@ -62,12 +62,12 @@ test('faster set entry preserves edits and draft changes survive an offline relo
   await expect(bench.getByRole('spinbutton', { name: 'Bench Press set 4 weight in kg' })).toHaveValue('60');
   await expect(bench.getByRole('button', { name: 'Bench Press set 4 complete', exact: true })).toHaveAttribute('aria-pressed', 'false');
   await bench.getByRole('button', { name: 'Remove last set', exact: true }).click();
-  await page.getByRole('button', { name: 'Keep logging', exact: true }).click();
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(bench.getByRole('spinbutton', { name: 'Bench Press set 4 weight in kg' })).toBeVisible();
   await bench.getByRole('button', { name: 'Remove last set', exact: true }).click();
-  await page.getByRole('button', { name: 'Confirm removal', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Remove set', exact: true }).click();
   await page.getByRole('region', { name: 'Barbell Row', exact: true }).getByRole('button', { name: 'Remove exercise', exact: true }).click();
-  await page.getByRole('button', { name: 'Confirm removal', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Remove exercise', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Barbell Row', exact: true })).toHaveCount(0);
   await expect(page.getByRole('progressbar', { name: 'Workout completion' })).toHaveAttribute('aria-valuenow', '1');
   await page.getByRole('button', { name: 'Rename workout', exact: true }).click();
@@ -109,9 +109,9 @@ test('overview lift selection carries through to detailed progress', async ({ pa
   await page.goto('./#dashboard');
   await page.getByRole('combobox', { name: 'Overview exercise', exact: true }).selectOption('squat');
   await expect(page.getByRole('heading', { name: 'Back Squat', exact: true })).toBeVisible();
-  await expect(page.getByRole('img', { name: 'Back Squat, heaviest set by session in kg', exact: true })).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Back Squat, heaviest set per workout in kg', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'View progress', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Lift progress', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Exercise progress', exact: true })).toBeVisible();
   await expect(page.getByRole('combobox', { name: 'Exercise', exact: true })).toHaveValue('squat');
 });
 
@@ -119,7 +119,7 @@ test('narrow phone and tablet screens avoid horizontal scrolling', async ({ page
   const width = info.project.name === 'phone' ? 320 : 768;
   await page.setViewportSize({ width, height: 900 });
   await page.goto('./#dashboard');
-  await page.getByRole('heading', { name: 'Training log' }).waitFor();
+  await page.getByRole('heading', { name: 'Training overview' }).waitFor();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
   await page.getByRole('button', { name: 'Start workout', exact: true }).click();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
@@ -139,9 +139,9 @@ test('workspace selection stays consistent with browser back and forward navigat
   await expect(page).toHaveURL(/#history$/);
   await page.getByRole('button', { name: /^Demo journal/ }).click();
   await page.getByRole('dialog').getByRole('button', { name: /^My journal/ }).click();
-  await expect(page.getByRole('heading', { name: 'Your first workout' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your first workout', exact: true })).toBeVisible();
   await page.goBack();
   await expect(page.getByRole('region', { name: 'About the demo journal' })).toBeVisible();
   await page.goForward();
-  await expect(page.getByRole('heading', { name: 'Your first workout' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your first workout', exact: true })).toBeVisible();
 });

@@ -36,7 +36,7 @@ export function makeSet(reps = ''): SetEntry {
 
 export function startWorkout(routine?: Routine, startedAt = Date.now()): Draft {
   return {
-    id: crypto.randomUUID(), name: routine?.name ?? 'Free Workout', startedAt, restUntil: null,
+    id: crypto.randomUUID(), name: routine?.name ?? 'Blank workout', startedAt, restUntil: null,
     lifts: (routine?.targets ?? []).map((target) => ({
       exerciseId: target.exerciseId, type: exerciseType(target),
       sets: Array.from({ length: target.sets }, () => ({ ...makeSet(exerciseType(target) === 'timed' ? '' : String(target.reps)), ...(exerciseType(target) === 'timed' ? { seconds: String(target.reps) } : {}) })),

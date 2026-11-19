@@ -6,7 +6,7 @@ test('spreadsheet previews merges and skips stable duplicate IDs',async({page})=
 });
 test('file sharing falls back from settrack to JSON and records a successful backup',async({page})=>{
  await page.addInitScript(()=>{Object.defineProperty(navigator,'canShare',{value:({files}:{files:File[]})=>files[0].name.endsWith('.json')});Object.defineProperty(navigator,'share',{value:async({files}:{files:File[]})=>{Object.assign(window,{sharedName:files[0].name});}});});
- await page.goto('./#data');await page.getByRole('button',{name:'Back up my journal',exact:true}).click();await expect(page.getByText(/Backup shared:.*\.json/)).toBeVisible();await expect(page.getByText('Last backup: 0 days ago')).toBeVisible();expect(await page.evaluate(()=>(window as unknown as {sharedName:string}).sharedName)).toMatch(/\.json$/);
+ await page.goto('./#data');await page.getByRole('button',{name:'Back up my journal',exact:true}).click();await expect(page.getByText(/Backup shared:.*\.json/)).toBeVisible();await expect(page.getByText(/Last backup: \d{1,2} [A-Z][a-z]{2} \d{4}, \d{2}:\d{2}/)).toBeVisible();expect(await page.evaluate(()=>(window as unknown as {sharedName:string}).sharedName)).toMatch(/\.json$/);
 });
 test('draft writes debounce and recover after closing the tab mid-input',async({page,context})=>{
  await page.addInitScript(()=>{const original=IDBObjectStore.prototype.put;Object.assign(window,{putCount:0});IDBObjectStore.prototype.put=function(...args:Parameters<typeof original>){(window as unknown as {putCount:number}).putCount++;return original.apply(this,args);};});

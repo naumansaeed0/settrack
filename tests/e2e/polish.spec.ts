@@ -8,7 +8,7 @@ const backupFile = (content: string) => ({ name: 'journal.json', mimeType: 'appl
 
 test('backup import validates data, confirms overwrite and exports the whole journal', async ({ page }) => {
   await page.goto('./');
-  await expect(page.getByRole('heading', { name: 'Training log' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Training overview' })).toBeVisible();
   const input = page.getByLabel('Restore from backup', { exact: true });
   await input.setInputFiles(backupFile('{bad'));
   await expect(page.getByRole('alert')).toContainText('not a valid SetTrack backup');
@@ -27,7 +27,7 @@ test('backup import validates data, confirms overwrite and exports the whole jou
   await page.getByRole('button', { name: 'Replace journal' }).click();
   await expect(page.getByRole('status')).toHaveText('Stored on this device');
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Your first workout' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your first workout', exact: true })).toBeVisible();
   await input.setInputFiles(backupFile(JSON.stringify(exported)));
   await page.getByRole('button', { name: 'Replace journal' }).click();
   await expect(page.getByRole('heading', { name: 'Upper Body A' })).toBeVisible();
@@ -51,7 +51,7 @@ test('past workouts and completed sets can be edited and deleted with confirmati
   await page.getByRole('button', { name: 'Delete workout', exact: true }).click();
   await page.getByRole('button', { name: 'Keep workout', exact: true }).click();
   await page.getByRole('button', { name: 'Delete workout', exact: true }).click();
-  await page.getByRole('button', { name: 'Confirm delete workout', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Delete workout', exact: true }).click();
   await expect(page.getByRole('status')).toHaveText('Stored on this device');
   await page.reload();
   await expect(page.getByRole('button', { name: /Corrected workout/ })).toHaveCount(0);
@@ -63,7 +63,7 @@ test('workspace units persist and pounds entries keep canonical kilograms', asyn
   await page.getByRole('button', { name: 'Start workout', exact: true }).click();
   await page.getByRole('combobox', { name: 'Weight units' }).selectOption('lb');
   const bench = page.getByRole('region', { name: 'Bench Press' });
-  await expect(bench.getByText('Chest · Last session 132.28 lb × 8')).toBeVisible();
+  await expect(bench.getByText('Chest · Last workout 132.28 lb × 8')).toBeVisible();
   await bench.getByRole('spinbutton', { name: 'Bench Press set 1 weight in lb' }).fill('110.23');
   await bench.getByRole('button', { name: 'Bench Press set 1 complete' }).click();
   await expect(page.getByRole('status')).toHaveText('Stored on this device');
@@ -75,7 +75,7 @@ test('workspace units persist and pounds entries keep canonical kilograms', asyn
   await page.getByRole('button', { name: /Demo journal/ }).click();
   await page.getByRole('button', { name: /^My journal/ }).click();
   await expect(page.getByRole('combobox', { name: 'Weight units' })).toHaveValue('kg');
-  await expect(page.getByRole('heading', { name: 'Your first workout' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your first workout', exact: true })).toBeVisible();
 });
 
 test('storage unavailability and quota failures show actionable errors', async ({ page }) => {
@@ -201,6 +201,6 @@ test('denied wake lock and persistent storage retain a usable journal', async ({
   await page.goto('./');
   await page.getByRole('button', { name: 'Start workout', exact: true }).click();
   await expect(page.getByText('Keep-awake could not start. Your screen may lock during training.')).toBeVisible();
-  await expect(page.getByText('Your browser may clear this journal under storage pressure. Export backups regularly.')).toBeVisible();
+  await expect(page.getByText('Your browser may clear this journal under storage pressure. Back up your journal regularly.')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Upper Body A' })).toBeVisible();
 });

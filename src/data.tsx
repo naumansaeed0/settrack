@@ -160,7 +160,7 @@ export function DataControls({
               <p>
                 Last backup:{" "}
                 {stamp
-                  ? `${Math.floor((Date.now() - stamp.at) / 86400000)} days ago`
+                  ? new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(stamp.at)
                   : "Never on this device"}
               </p>
             </article>
@@ -296,8 +296,7 @@ export function DataControls({
         <p className="storage-note">
           Full backups include routines, history and your active draft.
           Spreadsheets contain history only and merge by workout ID; existing
-          workouts are skipped. CSV columns include IDs, dates, exercise type,
-          weight/unit, reps or seconds, and recomputed record flags.
+          workouts are skipped. The preview checks every row before adding workouts.
         </p>
       )}
       {!expanded && <p className="storage-note">{persistence}</p>}
