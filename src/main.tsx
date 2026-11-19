@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { useEffect, useRef, useState } from 'react';
+import { useWakeLock } from './useWakeLock.ts';
 import { exportBackup, importBackup } from './backup.ts';
 import { loadJournal, saveJournal } from './journal.ts';
 import { demoJournal, emptyJournal, exercise, finishWorkout, library, progressFor, startWorkout, workoutStats,
@@ -118,6 +119,7 @@ function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwi
     setDetail(result);
   }
 
+  const wakeMessage = useWakeLock(!!journal?.draft);
   const points = journal ? progressFor(journal.history, selected) : [];
   const newRoutine = <button className="button primary" onClick={() => setEditing('new')}><Icon name="plus" size={18} /> New routine</button>;
 
@@ -133,6 +135,7 @@ function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwi
     <div className="body">
       <header className="topbar"><span>{page === 'workout' ? 'Active workout' : navigation.find((item) => item.id === page)?.label}</span><div role="status" className="storage-status"><i data-status={status} />{status === 'saving' ? 'Saving…' : status === 'error' ? 'Save failed' : journal ? 'Stored on this device' : 'Opening journal…'}</div></header>
       <main id="content" ref={main} tabIndex={-1}>
+        {wakeMessage && <p className="storage-note">{wakeMessage}</p>}
         {storageError && <p className="error" role="alert">{storageError} <button className="text-button" onClick={() => location.reload()}>Reload</button></p>}
         {!journal && !storageError && <p>Opening your journal…</p>}
         <div inert={!!storageError}>
