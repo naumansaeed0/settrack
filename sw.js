@@ -1,3 +1,5 @@
+const version = "fbf5644f3cd1";
+const files = ["/settrack/assets/hero-tip2G_vI.webp","/settrack/assets/index-BcsM6yCz.js","/settrack/assets/index-DPxBTYwD.css","/settrack/index.html","/settrack/mark.svg"];
 const prefix = `settrack-shell:${self.registration.scope}:`;
 const cacheName = `${prefix}${version}`;
 const shell = new URL('index.html', self.registration.scope).href;
