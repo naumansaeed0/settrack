@@ -1,5 +1,5 @@
-const version = "c74f61e6346a";
-const files = ["/settrack/assets/hero-tip2G_vI.webp","/settrack/assets/index-CztvxsaU.css","/settrack/assets/index-D_iHp1Vd.js","/settrack/icon-192.png","/settrack/icon-512.png","/settrack/index.html","/settrack/manifest.webmanifest","/settrack/mark.svg"];
+const version = "c0087e8d5079";
+const files = ["/settrack/assets/hero-tip2G_vI.webp","/settrack/assets/index-BhOm8yco.js","/settrack/assets/index-CMOjBpuE.css","/settrack/icon-192.png","/settrack/icon-512.png","/settrack/index.html","/settrack/manifest.webmanifest","/settrack/mark.svg"];
 const prefix = `settrack-shell:${self.registration.scope}:`;
 const cacheName = `${prefix}${version}`;
 const shell = new URL('index.html', self.registration.scope).href;
