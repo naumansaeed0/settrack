@@ -6,10 +6,12 @@ let connection: Promise<IDBDatabase> | undefined;
 
 function openJournal(): Promise<IDBDatabase> {
   connection ??= new Promise<IDBDatabase>((resolve, reject) => {
+    if (typeof indexedDB === 'undefined') { reject(new Error('IndexedDB is unavailable')); return; }
     const request = indexedDB.open('settrack', 1);
     request.onupgradeneeded = () => request.result.createObjectStore('workspaces');
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
+    request.onblocked = () => reject(new Error('Close other SetTrack tabs and reload.'));
   }).catch((error: unknown) => {
     connection = undefined;
     throw error;
@@ -42,6 +44,7 @@ export async function saveJournal(workspace: Workspace, journal: Journal, revisi
       store.put({ revision: revision + 1, journal }, workspace);
     };
     transaction.oncomplete = () => resolve(revision + 1);
+    transaction.onerror = () => reject(transaction.error ?? new Error('Storage write failed'));
     transaction.onabort = () => reject(conflict ? new Error('workspace-conflict') : transaction.error ?? new Error('The save was interrupted.'));
   });
 }

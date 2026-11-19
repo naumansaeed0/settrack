@@ -45,6 +45,7 @@ function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwi
   const [detail, setDetail] = useState<Workout | null>(null);
   const [status, setStatus] = useState<'ready' | 'saving' | 'error'>('ready');
   const [storageError, setStorageError] = useState('');
+  const [persistence, setPersistence] = useState('');
   const [backupError, setBackupError] = useState('');
   const [imported, setImported] = useState<Journal | null>(null);
   const pending = useRef(Promise.resolve());
@@ -55,12 +56,15 @@ function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwi
 
   useEffect(() => {
     let active = true;
+    if (navigator.storage?.persist) {
+      void navigator.storage.persist().then(granted => { if (active) setPersistence(granted ? 'Persistent storage enabled.' : 'Your browser may clear this journal under storage pressure. Export backups regularly.'); }).catch(() => { if (active) setPersistence('Persistent storage is unavailable. Export backups regularly.'); });
+    } else setPersistence('Persistent storage is unavailable. Export backups regularly.');
     loadJournal(workspace).then((saved) => {
       if (active) {
         version.current = saved?.revision ?? 0;
         setJournal(saved?.journal ?? (workspace === 'demo' ? demoJournal() : emptyJournal()));
       }
-    }).catch(() => { if (active) setStorageError('The journal could not open. Check your browser’s site storage settings and reload.'); });
+    }).catch(() => { if (active) setStorageError('IndexedDB is unavailable. Private browsing, blocked site storage or a full device may prevent saving. Allow site storage, free space and reload.'); });
     return () => { active = false; };
   }, [workspace]);
 
@@ -94,7 +98,7 @@ function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwi
         setStatus('error');
         setStorageError(error instanceof Error && error.message === 'workspace-conflict'
           ? 'This journal changed in another tab. Reload to see the saved version.'
-          : 'This change could not be saved. Check your browser’s site storage settings and reload.');
+          : 'This change could not be saved to IndexedDB (storage blocked or quota exceeded). Export your journal now, then free storage and reload.');
       }
     });
   }
@@ -161,6 +165,7 @@ function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwi
           catch (error) { setBackupError(error instanceof Error ? error.message : 'Could not read backup file.'); }
         }} /></label></div><span>Strength training journal</span></footer>
     </div>
+    {persistence && <p className="storage-note">{persistence}</p>}
     {backupError && <p className="error" role="alert">{backupError}</p>}
     {imported && <Modal title="Replace this journal?" onClose={() => setImported(null)}><p>This will replace all routines, past workouts and the active draft in {workspace === 'demo' ? 'Demo journal' : 'My journal'} with the backup. Export your current journal first to keep a copy.</p><div className="modal-actions"><button className="button secondary" onClick={() => setImported(null)}>Cancel import</button><button className="button danger" disabled={status === 'saving'} onClick={() => { save(imported); setImported(null); setDetail(null); navigate('dashboard'); }}>Replace journal</button></div></Modal>}
     {editing && journal && <RoutineEditor initial={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} onSave={(routine) => {
