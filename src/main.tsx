@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { useEffect, useRef, useState } from 'react';
+import { exportBackup, importBackup } from './backup.ts';
 import { loadJournal, saveJournal } from './journal.ts';
 import { demoJournal, emptyJournal, exercise, finishWorkout, library, progressFor, startWorkout, workoutStats,
   type ExerciseId, type Journal, type Routine, type Workout, type Workspace } from './training.ts';
@@ -44,6 +45,8 @@ function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwi
   const [detail, setDetail] = useState<Workout | null>(null);
   const [status, setStatus] = useState<'ready' | 'saving' | 'error'>('ready');
   const [storageError, setStorageError] = useState('');
+  const [backupError, setBackupError] = useState('');
+  const [imported, setImported] = useState<Journal | null>(null);
   const pending = useRef(Promise.resolve());
   const lastSave = useRef(0);
   const version = useRef(0);
@@ -144,8 +147,22 @@ function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwi
           {journal?.draft && page === 'workout' && <WorkoutEditor draft={journal.draft} history={journal.history} change={(draft) => save({ ...journal, draft })} finish={finish} discard={() => { save({ ...journal, draft: null }); navigate('dashboard'); }} />}
         </div>
       </main>
-      <footer><span>SetTrack</span><span>Strength training journal</span></footer>
+      <footer><span>SetTrack</span><div className="backup-actions">
+        <button className="text-button" disabled={!journal || status === 'saving'} onClick={() => {
+          if (!journal) return;
+          const url = URL.createObjectURL(new Blob([exportBackup(journal)], { type: 'application/json' }));
+          const link = document.createElement('a'); link.href = url; link.download = `settrack-${workspace}-${new Date().toISOString().slice(0, 10)}.json`; link.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }}>Export journal</button>
+        <label className="button secondary">Import journal<input aria-label="Import journal" type="file" accept=".json,application/json" disabled={!journal || !!storageError || status === 'saving'} onChange={async (event) => {
+          const file = event.target.files?.[0]; event.target.value = ''; if (!file) return;
+          setBackupError('');
+          try { if (file.size > 20 * 1024 * 1024) throw new Error('Backup is too large (maximum 20 MB).'); setImported(importBackup(await file.text())); }
+          catch (error) { setBackupError(error instanceof Error ? error.message : 'Could not read backup file.'); }
+        }} /></label></div><span>Strength training journal</span></footer>
     </div>
+    {backupError && <p className="error" role="alert">{backupError}</p>}
+    {imported && <Modal title="Replace this journal?" onClose={() => setImported(null)}><p>This will replace all routines, past workouts and the active draft in {workspace === 'demo' ? 'Demo journal' : 'My journal'} with the backup. Export your current journal first to keep a copy.</p><div className="modal-actions"><button className="button secondary" onClick={() => setImported(null)}>Cancel import</button><button className="button danger" disabled={status === 'saving'} onClick={() => { save(imported); setImported(null); setDetail(null); navigate('dashboard'); }}>Replace journal</button></div></Modal>}
     {editing && journal && <RoutineEditor initial={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} onSave={(routine) => {
       save({ ...journal, routines: editing === 'new' ? [...journal.routines, routine] : journal.routines.map((item) => item.id === routine.id ? routine : item) });
       setEditing(null);
