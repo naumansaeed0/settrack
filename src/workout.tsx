@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useUnits } from './units.tsx';
 import { exercise, library, makeSet, previousSets, secondsLeft, validSet, workoutStats, recordsFor,
   type Workspace, type Draft, type ExerciseId, type Journal, type Routine, type SetEntry, type Workout } from './training.ts';
 import { duration, Empty, formatDate, Icon, Modal, number, PageHeading } from './ui.tsx';
@@ -6,6 +7,7 @@ import { duration, Empty, formatDate, Icon, Modal, number, PageHeading } from '.
 export function WorkoutEditor({ draft, history, change, finish, discard, workspace }: {
   workspace: Workspace; draft: Draft; history: Workout[]; change: (draft: Draft) => void; finish: () => void; discard: () => void;
 }) {
+  const { unit, weight, inputWeight, fromInput } = useUnits();
   const [restSeconds, setRestSeconds] = useState(() => { try { return localStorage.getItem(`settrack:${workspace}:restSeconds`) || '90'; } catch { return '90'; } });
   const durationSeconds = Math.min(3600, Math.max(5, Number(restSeconds) || 90));
   const [adding, setAdding] = useState(false);
@@ -35,11 +37,11 @@ export function WorkoutEditor({ draft, history, change, finish, discard, workspa
           const previous = previousSets(history, lift.exerciseId);
           const latest = previous.at(-1);
           return <section className="panel lift" key={lift.exerciseId} aria-label={info.name}>
-            <header className="lift-heading"><span className="row-icon"><Icon name="weights" /></span><div><h2>{info.name}</h2><p>{info.group}{latest && ` · Last session ${latest.weight} kg × ${latest.reps}`}</p></div></header>
-            <div className="set-grid set-labels" aria-hidden="true"><span>Set</span><span>Previous</span><span>kg</span><span>Reps</span><span>Done</span></div>
+            <header className="lift-heading"><span className="row-icon"><Icon name="weights" /></span><div><h2>{info.name}</h2><p>{info.group}{latest && ` · Last session ${weight(latest.weight)} ${unit} × ${latest.reps}`}</p></div></header>
+            <div className="set-grid set-labels" aria-hidden="true"><span>Set</span><span>Previous</span><span>{unit}</span><span>Reps</span><span>Done</span></div>
             {lift.sets.map((set, index) => <div className={`set-grid set-row ${set.done ? 'done' : ''}`} key={set.id}>
-              <span>{index + 1}</span><span className="previous">{previous[index] ? `${previous[index].weight} × ${previous[index].reps}` : '—'}</span>
-              <input inputMode="decimal" type="number" min="0" max="1000" step="any" placeholder={previous[index]?.weight ?? '0'} aria-label={`${info.name} set ${index + 1} weight in kg`} value={set.weight} onChange={(event) => updateSet(lift.exerciseId, set.id, { weight: event.target.value, done: false })} />
+              <span>{index + 1}</span><span className="previous">{previous[index] ? `${weight(previous[index].weight)} × ${previous[index].reps}` : '—'}</span>
+              <input inputMode="decimal" type="number" min="0" max={unit === 'lb' ? 2204.62 : 1000} step="any" placeholder={previous[index] ? String(weight(previous[index].weight)) : '0'} aria-label={`${info.name} set ${index + 1} weight in ${unit}`} value={inputWeight(set.weight)} onChange={(event) => updateSet(lift.exerciseId, set.id, { weight: fromInput(event.target.value), done: false })} />
               <input inputMode="numeric" type="number" min="1" max="200" step="1" placeholder={previous[index]?.reps ?? '–'} aria-label={`${info.name} set ${index + 1} reps`} value={set.reps} onChange={(event) => updateSet(lift.exerciseId, set.id, { reps: event.target.value, done: false })} />
               <button type="button" className="icon-button set-check" aria-label={`${info.name} set ${index + 1} ${set.done ? 'undo' : 'complete'}`} aria-pressed={set.done} disabled={!validSet(set)} onClick={() => updateSet(lift.exerciseId, set.id, { done: !set.done }, !set.done)}><Icon name="check" size={18} /></button>
             </div>)}
@@ -90,10 +92,10 @@ export function RoutineEditor({ initial, onSave, onClose }: { initial?: Routine;
       <label className="field">Routine name<input value={name} onChange={(event) => setName(event.target.value)} autoFocus maxLength={60} required /></label>
       {!!targets.length && <div className="routine-targets">{targets.map((target, index) => <div className="routine-target" key={target.exerciseId}>
         <strong>{exercise(target.exerciseId).name}</strong>
-        <label>Sets<input type="number" min="1" max="20" step="1" required value={target.sets || ''} onChange={(event) => {
+        <label>Sets<input type="number" inputMode="numeric" min="1" max="20" step="1" required value={target.sets || ''} onChange={(event) => {
           const sets = Number(event.target.value); setTargets(targets.map((item) => item === target ? { ...target, sets } : item));
         }} /></label>
-        <label>Reps<input type="number" min="1" max="200" step="1" required value={target.reps || ''} onChange={(event) => {
+        <label>Reps<input type="number" inputMode="numeric" min="1" max="200" step="1" required value={target.reps || ''} onChange={(event) => {
           const reps = Number(event.target.value); setTargets(targets.map((item) => item === target ? { ...target, reps } : item));
         }} /></label>
         <div className="target-actions"><button type="button" className="icon-button subtle" disabled={index === 0} aria-label={`Move ${exercise(target.exerciseId).name} up`} onClick={() => move(index, -1)}><Icon name="up" size={16} /></button><button type="button" className="icon-button subtle" disabled={index === targets.length - 1} aria-label={`Move ${exercise(target.exerciseId).name} down`} onClick={() => move(index, 1)}><Icon name="down" size={16} /></button><button type="button" className="icon-button subtle" aria-label={`Remove ${exercise(target.exerciseId).name}`} onClick={() => setTargets(targets.filter((item) => item !== target))}><Icon name="close" size={16} /></button></div>
@@ -105,6 +107,7 @@ export function RoutineEditor({ initial, onSave, onClose }: { initial?: Routine;
 }
 
 export function WorkoutDetail({ workout, journal, onClose, onProgress, onSave, onDelete }: { workout: Workout; journal: Journal; onClose: () => void; onProgress: (id: ExerciseId) => void; onSave: (workout: Workout) => void; onDelete: () => void }) {
+  const { unit, weight, inputWeight, fromInput } = useUnits();
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [edited, setEdited] = useState(workout);
@@ -115,16 +118,16 @@ export function WorkoutDetail({ workout, journal, onClose, onProgress, onSave, o
       <label className="field">Workout name<input required maxLength={60} value={edited.name} onChange={e => setEdited({ ...edited, name: e.target.value })} /></label>
       <label className="field">Finished at<input type="datetime-local" required value={new Date(edited.finishedAt - new Date(edited.finishedAt).getTimezoneOffset() * 60000).toISOString().slice(0,16)} onChange={e => { const end = +new Date(e.target.value); if (Number.isFinite(end)) setEdited({ ...edited, finishedAt: end, startedAt: end - (edited.finishedAt - edited.startedAt) }); }} /></label>
       {edited.lifts.map(lift => <fieldset key={lift.exerciseId}><legend>{exercise(lift.exerciseId).name}</legend>{lift.sets.map((set, index) => <div className="edit-set" key={set.id}>
-        <label>Set {index + 1} kg<input type="number" inputMode="decimal" required min="0" max="1000" step="any" value={set.weight} onChange={e => setEdited({ ...edited, lifts: edited.lifts.map(l => l === lift ? { ...l, sets: l.sets.map(s => s === set ? { ...s, weight: e.target.value } : s) } : l) })} /></label>
+        <label>Set {index + 1} {unit}<input type="number" inputMode="decimal" required min="0" max={unit === 'lb' ? 2204.62 : 1000} step="any" value={inputWeight(set.weight)} onChange={e => setEdited({ ...edited, lifts: edited.lifts.map(l => l === lift ? { ...l, sets: l.sets.map(s => s === set ? { ...s, weight: fromInput(e.target.value) } : s) } : l) })} /></label>
         <label>Reps<input type="number" inputMode="numeric" required min="1" max="200" value={set.reps} onChange={e => setEdited({ ...edited, lifts: edited.lifts.map(l => l === lift ? { ...l, sets: l.sets.map(s => s === set ? { ...s, reps: e.target.value } : s) } : l) })} /></label>
         <button type="button" className="button secondary" aria-label={`Delete ${exercise(lift.exerciseId).name} set ${index + 1}`} onClick={() => { if (window.confirm('Delete this completed set? Changes take effect when you save the workout.')) setEdited({ ...edited, lifts: edited.lifts.map(l => l === lift ? { ...l, sets: l.sets.filter(s => s !== set) } : l) }); }}>Delete set</button>
       </div>)}</fieldset>)}
       <div className="modal-actions"><button type="button" className="button secondary" onClick={() => { setEdited(workout); setEditing(false); }}>Cancel changes</button><button className="button primary" disabled={!edited.name.trim() || !edited.lifts.some(l => l.sets.length) || edited.lifts.some(l => l.sets.some(s => !validSet(s))) || edited.startedAt < 0}>Save changes</button></div>
     </form> : <>
     <p className="summary-date">{formatDate(workout.finishedAt, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
-    <div className="summary-stats"><div><strong>{stats.sets}</strong><small>Sets</small></div><div><strong>{number(stats.volume)} kg</strong><small>Volume</small></div><div><strong>{duration(workout.startedAt, workout.finishedAt)}</strong><small>Duration</small></div></div>
-    {records.map((record) => <div className="record" key={record.exerciseId}><Icon name="trophy" /><div><strong>New heaviest set</strong><p>{exercise(record.exerciseId).name} · {number(record.weight)} kg</p></div><button className="text-button" onClick={() => onProgress(record.exerciseId)}>View progress</button></div>)}
-    <div className="summary-lifts">{workout.lifts.map((lift) => <div key={lift.exerciseId}><strong>{exercise(lift.exerciseId).name}</strong><span>{lift.sets.map((set) => `${set.weight} kg × ${set.reps}`).join(' · ')}</span></div>)}</div>
+    <div className="summary-stats"><div><strong>{stats.sets}</strong><small>Sets</small></div><div><strong>{number(weight(stats.volume))} {unit}</strong><small>Volume</small></div><div><strong>{duration(workout.startedAt, workout.finishedAt)}</strong><small>Duration</small></div></div>
+    {records.map((record) => <div className="record" key={record.exerciseId}><Icon name="trophy" /><div><strong>New heaviest set</strong><p>{exercise(record.exerciseId).name} · {number(weight(record.weight))} {unit}</p></div><button className="text-button" onClick={() => onProgress(record.exerciseId)}>View progress</button></div>)}
+    <div className="summary-lifts">{workout.lifts.map((lift) => <div key={lift.exerciseId}><strong>{exercise(lift.exerciseId).name}</strong><span>{lift.sets.map((set) => `${weight(set.weight)} ${unit} × ${set.reps}`).join(' · ')}</span></div>)}</div>
     <div className="modal-actions"><button className="button secondary" onClick={() => setEditing(true)}>Edit workout</button><button className="button danger" onClick={() => setConfirmDelete(true)}>Delete workout</button><button className="button primary" onClick={onClose}>Done</button></div>
     </>}
   </Modal>;

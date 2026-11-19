@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { useEffect, useRef, useState } from 'react';
+import { UnitProvider, useUnits } from './units.tsx';
 import { useRestAlert } from './useRestAlert.ts';
 import { useWakeLock } from './useWakeLock.ts';
 import { exportBackup, importBackup } from './backup.ts';
@@ -25,7 +26,7 @@ function App() {
   const [workspace, setWorkspace] = useState(initialWorkspace);
   const [switcher, setSwitcher] = useState(false);
   return <>
-    <JournalApp key={workspace} workspace={workspace} openSwitcher={() => setSwitcher(true)} />
+    <UnitProvider key={workspace} workspace={workspace}><JournalApp workspace={workspace} openSwitcher={() => setSwitcher(true)} /></UnitProvider>
     {switcher && <Modal title="Switch workspace" onClose={() => setSwitcher(false)}>
       <p>Each workspace keeps its own routines and workout history on this device.</p>
       <div className="picker">{(['demo', 'personal'] as const).map((option) => <button className="picker-row" key={option} onClick={() => {
@@ -40,6 +41,7 @@ function App() {
 }
 
 function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwitcher: () => void }) {
+  const { unit, setUnit, weight, preferenceError } = useUnits();
   const [journal, setJournal] = useState<Journal | null>(null);
   const [page, setPage] = useState<Page>(() => routePage());
   const [selected, setSelected] = useState<ExerciseId>('bench');
@@ -135,8 +137,9 @@ function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwi
       <button className="workspace" onClick={openSwitcher} disabled={status === 'saving'}><span className="workspace-icon"><Icon name="workspace" size={18} /></span><span><strong>{workspace === 'demo' ? 'Demo journal' : 'My journal'}</strong><small>Switch workspace</small></span><Icon name="chevron" size={15} /></button>
     </aside>
     <div className="body">
-      <header className="topbar"><span>{page === 'workout' ? 'Active workout' : navigation.find((item) => item.id === page)?.label}</span><div role="status" className="storage-status"><i data-status={status} />{status === 'saving' ? 'Saving…' : status === 'error' ? 'Save failed' : journal ? 'Stored on this device' : 'Opening journal…'}</div></header>
+      <header className="topbar"><label className="unit-switch">Units <select aria-label="Weight units" value={unit} onChange={e => setUnit(e.target.value as 'kg' | 'lb')}><option value="kg">kg</option><option value="lb">lb</option></select></label><span>{page === 'workout' ? 'Active workout' : navigation.find((item) => item.id === page)?.label}</span><div role="status" className="storage-status"><i data-status={status} />{status === 'saving' ? 'Saving…' : status === 'error' ? 'Save failed' : journal ? 'Stored on this device' : 'Opening journal…'}</div></header>
       <main id="content" ref={main} tabIndex={-1}>
+        {preferenceError && <p role="alert">{preferenceError}</p>}
         {restMessage && <p className="rest-notice" role="alert">{restMessage}</p>}
         {wakeMessage && <p className="storage-note">{wakeMessage}</p>}
         {storageError && <p className="error" role="alert">{storageError} <button className="text-button" onClick={() => location.reload()}>Reload</button></p>}
@@ -150,9 +153,9 @@ function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwi
             <section className="panel">{journal.history.length ? <WorkoutRows workouts={journal.history} open={setDetail} /> : <Empty title="The log is empty">Finish your first workout to see it here.</Empty>}</section></>}
           {journal && page === 'progress' && <><PageHeading title="Lift progress" subtitle="Follow your heaviest completed set from session to session." />
             <section className="panel progress-panel"><div className="section-heading"><h2>{exercise(selected).name}</h2><label className="field"><span className="sr-only">Exercise</span><select value={selected} onChange={(event) => setSelected(event.target.value as ExerciseId)}>{library.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label></div>
-              {points.length > 0 && <div className="progress-metrics"><div><small>Heaviest set</small><strong>{number(Math.max(...points.map((point) => point.weight)))} <small>kg</small></strong></div><div><small>Sessions</small><strong>{points.length}</strong></div></div>}
+              {points.length > 0 && <div className="progress-metrics"><div><small>Heaviest set</small><strong>{number(weight(Math.max(...points.map((point) => point.weight))))} <small>{unit}</small></strong></div><div><small>Sessions</small><strong>{points.length}</strong></div></div>}
               <Chart points={points} id={selected} />
-              {points.length > 0 && <details><summary>Session data</summary><table className="data-table"><thead><tr><th scope="col">Date</th><th scope="col">Heaviest set</th></tr></thead><tbody>{[...points].reverse().map((point, index) => <tr key={`${point.date}-${index}`}><td>{formatDate(point.date, { day: 'numeric', month: 'short', year: 'numeric' })}</td><td>{number(point.weight)} kg</td></tr>)}</tbody></table></details>}
+              {points.length > 0 && <details><summary>Session data</summary><table className="data-table"><thead><tr><th scope="col">Date</th><th scope="col">Heaviest set</th></tr></thead><tbody>{[...points].reverse().map((point, index) => <tr key={`${point.date}-${index}`}><td>{formatDate(point.date, { day: 'numeric', month: 'short', year: 'numeric' })}</td><td>{number(weight(point.weight))} {unit}</td></tr>)}</tbody></table></details>}
             </section></>}
           {journal?.draft && page === 'workout' && <WorkoutEditor workspace={workspace} draft={journal.draft} history={journal.history} change={(draft) => save({ ...journal, draft })} finish={finish} discard={() => { save({ ...journal, draft: null }); navigate('dashboard'); }} />}
         </div>
@@ -185,6 +188,7 @@ function JournalApp({ workspace, openSwitcher }: { workspace: Workspace; openSwi
 function Overview({ journal, start, open, navigate, newRoutine }: {
   journal: Journal; start: (routine?: Routine) => void; open: (workout: Workout) => void; navigate: (page: Page) => void; newRoutine: () => void;
 }) {
+  const { unit, weight } = useUnits();
   const featured = journal.routines[0];
   const recent = journal.history[0];
   const month = Date.now() - 30 * 86400000;
@@ -203,12 +207,12 @@ function Overview({ journal, start, open, navigate, newRoutine }: {
     </div></section>
     <div className="metrics">
       <Metric icon="calendar" label="Sessions" value={String(lastMonth.length)} note="Last 30 days" />
-      <Metric icon="volume" label="Training volume" value={number(volume)} unit="kg" note="Last 30 days" />
+      <Metric icon="volume" label="Training volume" value={number(weight(volume))} unit={unit} note="Last 30 days" />
       <Metric icon="timer" label="Last session" value={recent ? duration(recent.startedAt, recent.finishedAt) : '—'} note={recent ? `${recent.name} · ${formatDate(recent.finishedAt)}` : 'Finish a workout to begin'} />
     </div>
     <div className="overview-grid">
       <section className="panel dashboard-chart"><div className="section-heading"><div><h2>Bench Press</h2><p>Heaviest set by session</p></div><button className="text-button" onClick={() => navigate('progress')}>View progress <Icon name="chevron" size={15} /></button></div>
-        {current !== undefined && <div className="chart-value">{number(current)} <small>kg</small>{points.length > 1 && points.at(-2)!.weight !== current && <span>{current > points.at(-2)!.weight ? '+' : '−'}{number(Math.abs(current - points.at(-2)!.weight))} kg</span>}</div>}
+        {current !== undefined && <div className="chart-value">{number(weight(current))} <small>{unit}</small>{points.length > 1 && points.at(-2)!.weight !== current && <span>{current > points.at(-2)!.weight ? '+' : '−'}{number(weight(Math.abs(current - points.at(-2)!.weight)))} {unit}</span>}</div>}
         <Chart points={points} id="bench" />
       </section>
       <section className="panel recent"><div className="section-heading"><h2>Recent workouts</h2><button className="text-button" onClick={() => navigate('history')}>View all <Icon name="chevron" size={15} /></button></div>

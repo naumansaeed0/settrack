@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import { useUnits } from './units.tsx';
 import { exercise, workoutStats, type ExerciseId, type Workout } from './training.ts';
 
 const paths = {
@@ -64,6 +65,8 @@ export function WorkoutRows({ workouts, open }: { workouts: Workout[]; open: (wo
 }
 
 export function Chart({ points, id }: { points: { date: number; weight: number }[]; id: ExerciseId }) {
+  const { unit, weight } = useUnits();
+  points = points.map(p => ({ ...p, weight: weight(p.weight) }));
   if (!points.length) return <Empty title="No sets logged for this lift">Log a completed set to start your chart.</Empty>;
   const width = 540;
   const height = 158;
@@ -81,7 +84,7 @@ export function Chart({ points, id }: { points: { date: number; weight: number }
   const coords = points.map((point) => ({ ...point, x: points.length === 1 ? (left + right) / 2 : left + (point.date - first) / span * (right - left), y: y(point.weight) }));
   const line = coords.map((point, index) => `${index ? 'L' : 'M'} ${point.x} ${point.y}`).join(' ');
   const last = coords.at(-1)!;
-  return <svg className="chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${exercise(id).name}, heaviest set by session in kilograms`}>
+  return <svg className="chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${exercise(id).name}, heaviest set by session in ${unit}`}>
     <defs><linearGradient id={`area-${id}`} x1="0" x2="0" y1="0" y2="1" gradientUnits="objectBoundingBox"><stop stopColor="#3048e0" stopOpacity=".16" /><stop offset="1" stopColor="#3048e0" stopOpacity="0" /></linearGradient></defs>
     {Array.from({ length: 5 }, (_, index) => bottom + (top - bottom) * index / 4).map((value) => <g key={value}>
       <line x1={left} x2={right} y1={y(value)} y2={y(value)} stroke="#e8e7e2" strokeDasharray="3 4" />
@@ -89,7 +92,7 @@ export function Chart({ points, id }: { points: { date: number; weight: number }
     </g>)}
     <path d={`${line} L ${last.x} ${floor} L ${coords[0].x} ${floor} Z`} fill={`url(#area-${id})`} />
     <path d={line} fill="none" stroke="#293fd1" strokeWidth="2.6" strokeLinejoin="round" />
-    {coords.map((point, index) => <circle key={index} cx={point.x} cy={point.y} r={index === coords.length - 1 ? 5 : 3} fill="#293fd1" stroke="white" strokeWidth="1.5"><title>{formatDate(point.date)} · {number(point.weight)} kg</title></circle>)}
+    {coords.map((point, index) => <circle key={index} cx={point.x} cy={point.y} r={index === coords.length - 1 ? 5 : 3} fill="#293fd1" stroke="white" strokeWidth="1.5"><title>{formatDate(point.date)} · {number(point.weight)} {unit}</title></circle>)}
     {(coords.length > 2 ? [coords[0], coords[Math.floor(coords.length / 2)], last] : coords).filter((point, index, ticks) => index === 0 || point.x - ticks[index - 1].x > 75).map((point) =>
       <text key={point.date} x={point.x} y="151" textAnchor="middle">{formatDate(point.date)}</text>)}
   </svg>;
